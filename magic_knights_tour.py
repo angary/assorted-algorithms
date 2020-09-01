@@ -61,15 +61,14 @@ def heuristic(b, pos, t, quads):
 	for i in range(8):
 		x = pos[1] + dx[i]
 		y = pos[0] + dy[i]
-		if isValid(b, y, x) and isMagic(b, y, x, t):
+		if isValid(b, y, x) and isMagic(b, y, x, t) and quadHash(y, x) in quads:
 			degree = 0
 			for j in range(8):
 				nY = y + dy[j]
 				nX = x + dx[j]
 				if isValid(b, nY, nX) and isMagic(b, nY, nX, t + 1):
 					degree += 1
-			if quadHash(y, x) in quads:
-				d.append([degree, i])
+			d.append([degree, i])
 	d.sort(key = lambda i:i[0])
 	return [d[i][1] for i in range(len(d))]
 
