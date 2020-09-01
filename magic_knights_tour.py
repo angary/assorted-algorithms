@@ -4,16 +4,6 @@
 # Uses Warnsdorff's algo, but augmented to suit magic square conditions
 # It also alternates/ backtracks bewteen quads using a stack every 4 moves
 
-# If the square contains a Y, the algorithm works, an X, it does not work
-
-# Y Y Y Y Y Y Y Y
-# Y Y Y Y Y Y Y Y
-# Y Y Y N N Y Y Y
-# Y Y N Y Y N Y Y
-# Y Y N Y Y N Y Y
-# Y Y Y N N Y Y Y
-# Y Y Y Y Y Y Y Y
-# Y Y Y Y Y Y Y Y
 
 dx = [2, 1, -1, -2, -2, -1, 1, 2]
 dy = [1, 2, 2, 1, -1, -2, -2, -1]
@@ -24,21 +14,25 @@ def main():
 	source = input("Starting position: ")
 	src = [int(ord(source[0].lower()) - int(ord('a'))), int(source[1]) - 1]
 	b = [[0 for j in range(8)] for i in range(8)]
-	b[src[0]][src[1]] = 1
+	y, x = src[0], src[1]
+	b[y][x] = 1
 	printBoard(b)
-	if solve(b, src, 1, [quadHash(src[0], src[1])], False):
+	maxStack = 16
+	if ((y == 2 or y == 5) and (x == 3 or x == 4)) or ((y == 3 or y == 4) and (x == 2 or x == 5)):
+		maxStack = 32
+	if solve(b, src, 1, [quadHash(y, x)], False, maxStack):
 		printBoard(b)
 	else:
 		print("Could not find solution")
 
 
 # Backtracking solve
-def solve(b, pos, t, qStack, backtrack):
+def solve(b, pos, t, qStack, backtrack, maxStack):
 	if t == 64:
 		return True
 	if backtrack and len(qStack) == 0: 
 		backtrack = False
-	if not backtrack and len(qStack) == 16: 
+	if not backtrack and len(qStack) == maxStack: 
 		backtrack = True
 	quads = findQuad(qStack, backtrack)
 	pq = heuristic(b, pos, t + 1, quads)
@@ -49,7 +43,7 @@ def solve(b, pos, t, qStack, backtrack):
 		newStack = qStack.copy()
 		if not backtrack: 
 			newStack.append(quadHash(y, x))
-		if solve(b, [y, x], t + 1, newStack, backtrack):
+		if solve(b, [y, x], t + 1, newStack, backtrack, maxStack):
 			return True
 		b[y][x] = 0
 	return False
@@ -61,12 +55,12 @@ def heuristic(b, pos, t, quads):
 	for i in range(8):
 		x = pos[1] + dx[i]
 		y = pos[0] + dy[i]
-		if isValid(b, y, x) and isMagic(b, y, x, t) and quadHash(y, x) in quads:
+		if isMagic(b, y, x, t) and quadHash(y, x) in quads:
 			degree = 0
 			for j in range(8):
 				nY = y + dy[j]
 				nX = x + dx[j]
-				if isValid(b, nY, nX) and isMagic(b, nY, nX, t + 1):
+				if isMagic(b, nY, nX, t + 1):
 					degree += 1
 			d.append([degree, i])
 	d.sort(key = lambda i:i[0])
@@ -77,11 +71,11 @@ def heuristic(b, pos, t, quads):
 def findQuad(qStack, backtrack):
 	if backtrack:
 		return [qStack.pop()]
-	if len(list(set(qStack))) == 0:
+	if len(list(set(qStack))) % 16 == 0:
 		return [0, 1, 2, 3]
-	if qStack.count(qStack[-1]) < 4:
+	if qStack.count(qStack[-1]) % 4 != 0:
 		return [qStack[-1]]
-	return [i for i in range(4) if i not in qStack]
+	return [i for i in range(4) if i not in qStack[16 * (len(qStack) // 16) : ]]
 
 
 # Print out the chess board
@@ -100,6 +94,8 @@ def quadHash(y, x):
 
 # Check if the new move satisfies magic condition
 def isMagic(b, y, x, t):
+	if x < 0 or x > 7 or y < 0 or y > 7 or b[y][x] != 0:
+		return False
 	tmpBoard = [row[:] for row in b]
 	tmpBoard[y][x] = t
 	halfRow = tmpBoard[y][4 * (x > 3) : 4 * (1 + (x > 3))]
@@ -115,11 +111,6 @@ def isMagic(b, y, x, t):
 	if (min(r) > 0 and sum(r) != 260) or (min(c) > 0 and sum(c) != 260):
 		return False
 	return True
-
-
-# Check if square is valid
-def isValid(b, y, x):
-	return x >= 0 and x < 8 and y >= 0 and y < 8 and b[y][x] == 0
 
 
 if __name__ == "__main__":
