@@ -6,14 +6,14 @@
 
 # If the square contains a Y, the algorithm works, an X, it does not work
 
-# Y N Y N N Y N Y
-# N N N N N N N N
-# Y N N N N N N Y
-# N N N N N N N N
-# N N N N N N N N
-# Y N N N N N N Y
-# N N N N N N N N
-# Y N Y N N Y N Y
+# Y Y Y Y Y Y Y Y
+# Y Y Y Y Y Y Y Y
+# Y Y Y N N Y Y Y
+# Y Y N Y Y N Y Y
+# Y Y N Y Y N Y Y
+# Y Y Y N N Y Y Y
+# Y Y Y Y Y Y Y Y
+# Y Y Y Y Y Y Y Y
 
 dx = [2, 1, -1, -2, -2, -1, 1, 2]
 dy = [1, 2, 2, 1, -1, -2, -2, -1]
@@ -36,8 +36,10 @@ def main():
 def solve(b, pos, t, qStack, backtrack):
 	if t == 64:
 		return True
-	if backtrack and len(qStack) == 0: backtrack = False
-	if not backtrack and len(qStack) == 16: backtrack = True
+	if backtrack and len(qStack) == 0: 
+		backtrack = False
+	if not backtrack and len(qStack) == 16: 
+		backtrack = True
 	quads = findQuad(qStack, backtrack)
 	pq = heuristic(b, pos, t + 1, quads)
 	for i in range(len(pq)):
@@ -45,7 +47,8 @@ def solve(b, pos, t, qStack, backtrack):
 		y = pos[0] + dy[pq[i]]
 		b[y][x] = t + 1
 		newStack = qStack.copy()
-		if not backtrack: newStack.append(quadHash(y, x))
+		if not backtrack: 
+			newStack.append(quadHash(y, x))
 		if solve(b, [y, x], t + 1, newStack, backtrack):
 			return True
 		b[y][x] = 0
@@ -100,18 +103,18 @@ def quadHash(y, x):
 def isMagic(b, y, x, t):
 	tmpBoard = [row[:] for row in b]
 	tmpBoard[y][x] = t
-	halfRow = tmpBoard[y][4 * (x > 3):4 * (1 + (x > 3))]
-	if min(halfRow) > 0 and sum(halfRow) != 130:
-		return False
+	halfRow = tmpBoard[y][4 * (x > 3) : 4 * (1 + (x > 3))]
 	for i in halfRow:
 		if i > 0 and i != t and (i - 1) // 4 == (t - 1) // 4:
 			return False
 	halfCol = [tmpBoard[i][x] for i in range(4 * (y > 3), 4 * (1 + (y > 3)))]
-	if min(halfCol) > 0 and sum(halfCol) != 130:
-		return False
 	for i in halfCol:
 		if i > 0 and i != t and (i - 1) // 4 == (t - 1) // 4:
 			return False
+	r = tmpBoard[y]
+	c = [tmpBoard[i][x] for i in range(8)]
+	if (min(r) > 0 and sum(r) != 260) or (min(c) > 0 and sum(c) != 260):
+		return False
 	return True
 
 
