@@ -10,13 +10,13 @@ class Vertex(object):
 	def __init__(self):
 		self.weights = {}
 
-	def add_weight(self, dest):
+	def add_edge(self, dest):
 		if dest in self.weights:
 			self.weights[dest] += 1
 		else:
 			self.weights[dest] = 1
 
-	def next_vals(self):
+	def next_vertices(self):
 		return self.weights
 
 
@@ -30,21 +30,21 @@ class Graph(object):
 	def add_edge(self, src, dest):
 		if src not in self.g:
 			self.add_vertex(src)
-		self.g[src].add_weight(dest)
+		self.g[src].add_edge(dest)
 
 	def random_vertex(self):
 		return random.choice(list(self.g))
 
-	def get_next_word(self, src):
+	def next_vertices(self, src):
 		if src in self.g:
-			return self.g[src].next_vals()
+			return self.g[src].next_vertices()
 		else:
 			return {}
 
 
 def main():
 
-	# Scan value into an array
+	# Save words of text into an array
 	file_path = (input("Enter file path: "))
 	words = []
 	with open(file_path, "r") as f:
@@ -53,7 +53,7 @@ def main():
 				w.lower().translate(str.maketrans('', '', string.punctuation))
 				words.append(w)
 	
-	# Transfer values to a graph
+	# Transfer words to a graph
 	g = Graph()
 	for i in range(len(words) - 1):
 		g.add_edge(words[i], words[i + 1])
@@ -63,7 +63,7 @@ def main():
 	curr = g.random_vertex()
 	for _ in range(word_count):
 		print(curr, end = " ")
-		next_words_dict = g.get_next_word(curr)
+		next_words_dict = g.next_vertices(curr)
 		if next_words_dict:
 			next_words = list(next_words_dict.keys())
 			weights = list(next_words_dict.values())

@@ -29,11 +29,7 @@ def main():
 def solve(b, pos, turn, quad_stack, backtrack):
 	if turn == 64:
 		return True
-	if backtrack and len(quad_stack) == 0: 
-		backtrack = False
-	if not backtrack and len(quad_stack) == max_stack: 
-		backtrack = True
-	quads = find_quad(quad_stack, backtrack)
+	quads, backtrack = find_quad(quad_stack, backtrack)
 	directions = heuristic(b, pos, turn + 1, quads)
 	for i in range(len(directions)):
 		y = pos[0] + dy[directions[i]]
@@ -66,14 +62,18 @@ def heuristic(b, pos, turn, quads):
 
 # Find which quad to prioritise
 def find_quad(quad_stack, backtrack):
+	if backtrack and len(quad_stack) == 0: 
+		backtrack = False
+	if not backtrack and len(quad_stack) == max_stack: 
+		backtrack = True
 	if backtrack:
-		return [quad_stack.pop()]
-	if len(list(set(quad_stack))) % 16 == 0:
-		return [0, 1, 2, 3]
+		return [quad_stack.pop()], backtrack
+	if len(quad_stack) % 16 == 0:
+		return [0, 1, 2, 3], backtrack
 	if quad_stack.count(quad_stack[-1]) % 4 != 0:
-		return [quad_stack[-1]]
+		return [quad_stack[-1]], backtrack
 	recent = quad_stack[16 * (len(quad_stack) // 16):]
-	return [i for i in range(4) if i not in recent]
+	return [i for i in range(4) if i not in recent], backtrack
 
 
 # Print out the chess board
@@ -85,7 +85,7 @@ def print_board(b):
     print()
 
 
-# Check which quad the square is in (currently only works for 8 x 8)
+# Check which quad the square is in
 def quad_hash(y, x):
 	return 2 * (y > 3) + (x > 3)
 
