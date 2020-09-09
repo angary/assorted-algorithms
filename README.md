@@ -5,7 +5,6 @@ A bunch of algorithms that I decided to showcase. If I'm currently working on so
 
 
 <h2>true false practise</h2>
-<hr/>
 <b>Oct 2019</b></br>
 First piece of code I uploaded to github in this previously private repo, held here for SenTimEnTaL vAluE.
 <br><br>
@@ -13,7 +12,6 @@ First piece of code I uploaded to github in this previously private repo, held h
 
 
 <h2>magic_knights_tour</h2>
-<hr/>
 <b>Aug 2020</b></br>
 Generates a path for a knight from any starting point such that it reaches every square on a chess board once, and ensures that if we were to plot the turn that it reached the square on the square of the chess board, the sum of the turns on every row and column of the chess board is equal
 <br><br>
@@ -24,7 +22,6 @@ Generates a path for a knight from any starting point such that it reaches every
 
 
 <h2>markov_chain_text</h2>
-<hr/>
 <b>Sep 2020</b><br>
 Reads a text file, and then generates a new piece of text using the same immediate word probabilities of the original text.
 <br><br>
@@ -35,7 +32,6 @@ Reads a text file, and then generates a new piece of text using the same immedia
 
 
 <h2>reversi</h2>
-<hr/>
 <b>Sep 2020</b><br>
 A 2 player board game where you aim to have the most squares filled.
 <br><br>
