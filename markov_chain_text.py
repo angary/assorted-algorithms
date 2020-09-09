@@ -8,16 +8,16 @@ import string
 
 class Vertex(object):
 	def __init__(self):
-		self.weights = {}
+		self.neighbours = {}
 
 	def add_edge(self, dest):
-		if dest in self.weights:
-			self.weights[dest] += 1
+		if dest in self.neighbours:
+			self.neighbours[dest] += 1
 		else:
-			self.weights[dest] = 1
+			self.neighbours[dest] = 1
 
 	def next_vertices(self):
-		return self.weights
+		return self.neighbours
 
 
 class Graph(object):
