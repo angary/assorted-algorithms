@@ -16,7 +16,7 @@ First piece of code I uploaded to github in this previously private repo, held h
 Generates a path for a knight from any starting point such that it reaches every square on a chess board once, and ensures that if we were to plot the turn that it reached the square on the square of the chess board, the sum of the turns on every row and column of the chess board is equal
 <br><br>
 
-*Given a starting point, it uses a recursive backtracking solve involving regular quartes, Warnsdorff's heuristic and quad backtracking to generate a path*
+*Given a starting point, it uses a recursive backtracking solve involving regular quartes, Warnsdorff's heuristic and quad backtracking to generate a path.*
 <br><br>
 
 
@@ -26,14 +26,14 @@ Generates a path for a knight from any starting point such that it reaches every
 Reads a text file, and then generates a new piece of text using the same immediate word probabilities of the original text.
 <br><br>
 
-*Generates a weighted directed graph (markov chain) from a given text, where each vertex is a word. It points to words that came after it in the text, where the weight is the number of times the word came after it. The text is generated through a series of probablistic state transitions from each vertex.*
+*Generates a markov chain (weighted directed graph) from a given text, where each vertex is a word pointing to words that came after it in the text, with number of occurences as edge weight. The text is generated through a series of probablistic state transitions from each vertex.*
 <br><br>
 
 
 
 <h2>reversi</h2>
 <b>Sep 2020</b><br>
-A 2 player board game where you aim to have the most squares filled.
+An implementation of the game 'Reversi' along with an AI to play against.
 <br><br>
 
 *Currently just a greedy solve, with additional predefined weighting for each square of the board. Hoping to implement a minimax algorithm with alpha beta pruning/ further heuristics.*
