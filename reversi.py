@@ -7,7 +7,7 @@ import copy
 import time
 
 # Currently the weights is predefined, hopefully can make an algo to determine
-SIZE = 8
+SIZE = 4
 MAX_TURN = (SIZE ** 2) - 3
 colour = ["W", "."]
 dy = [1, 1, 0, -1, -1, -1, 0, 1]
@@ -143,14 +143,20 @@ def main():
 
 		# Take human input
 		if player == 1:
-			y, x = take_turn(game, player)
-			game.go(y, x, player)
-		
+			# y, x = take_turn(game, player)
+			# game.go(y, x, player)
+			start_time = time.time()
+			best = minimax(game, player, player, -math.inf, math.inf)
+			game.go(best[1], best[2], player)
+			print("Prediction for best score:", best[0])
+			print("Time taken:", time.time() - start_time)	
+
 		# Take AI input
 		else:
 			start_time = time.time()
 			best = minimax(game, player, player, -math.inf, math.inf)
 			game.go(best[1], best[2], player)
+			print("Prediction for best score:", best[0])
 			print("Time taken:", time.time() - start_time)
 
 		game.print_board()
@@ -179,21 +185,21 @@ def take_turn(game, player):
 
 # Ai code
 ################################################################################
-def minimax(game, player, prioritise, alpha = 0, beta = 0):
+def minimax(game, player, maximise, alpha, beta):
 	if game.over():
-		return (game.find_score()[colour[prioritise]], 0, 0)
+		return (game.find_score()[colour[maximise]], 0, 0)
 
-	best_eval = -math.inf if player == prioritise else math.inf
+	best_eval = -math.inf if player == maximise else math.inf
 	valid_moves = game.find_valid(player)
-	best_x = 0
-	best_y = 0
+	best_y, best_x = valid_moves[0]
 
 	for y, x in valid_moves:
 		new_game = copy.deepcopy(game)
 		new_game.go(y, x, player)
-		new_eval = minimax(new_game, (player + 1) % 2, prioritise)
+		player = (player + 1) % 2
+		new_eval = minimax(new_game, player, maximise, alpha, beta)
 
-		if player == prioritise:
+		if player == maximise:
 			alpha = max(alpha, new_eval[0])
 			if best_eval < new_eval[0]:
 				best_eval = new_eval[0]

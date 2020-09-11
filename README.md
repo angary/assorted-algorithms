@@ -28,7 +28,7 @@ Reads a text file, and then generates a new piece of text using the same immedia
 
 
 
-<h2>reversi</h2><b>Sep 2020</b><br>
+<h2>reversi</h2><b>Sep 2020 (Work in progress)</b><br>
 An implementation of the game 'Reversi' along with an AI to play against.
 <br><br>
 
