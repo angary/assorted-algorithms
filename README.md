@@ -32,4 +32,4 @@ Reads a text file, and then generates a new piece of text using the same immedia
 An implementation of the game 'Reversi' along with an AI to play against.
 <br><br>
 
-*Command line game with an AI opponent which uses a minimax algorithm with alpha beta pruning.*
+*Command line game with an AI opponent which uses a negamax (variation of minimax) algorithm with alpha beta pruning.*

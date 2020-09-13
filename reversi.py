@@ -1,10 +1,10 @@
 # Contains the code for implementation of reversi and minimax AI
 # REPLACED "B" WITH "." FOR VISIBILTY
 # TODO:
-# - Improve heuristic
-# - Transposition table
-# - Negamax
-# - Beam search
+# - Dynamic weight calculation
+# - Transposition table (not suitable due to alpha beta pruning, maybe)
+# - Iterative deepening
+# - Principal variation search
 
 import math
 import copy
@@ -143,6 +143,11 @@ def main():
 		for j in range(SIZE):
 			weights[i][j] += max(i, SIZE - 1 - i)
 			weights[i][j] += max(j, SIZE - 1 - j)
+			if (i == 0 or i == SIZE - 1) and (j == 1 or j == SIZE - 2):
+				weights[i][j] = 0
+			elif ((j == 0 or j == 1 or j == SIZE - 1 or j == SIZE - 2) 
+				and (i == 1 or i == SIZE - 2)):
+				weights[i][j] = 0
 
 	print("Game started")
 	print("Enter positions as <letter><number>, i.e. a1")
@@ -150,37 +155,40 @@ def main():
 	game.turn = 1
 	game.print_board()
 	start_time = time.time()
+	global checked
 
 	# Game loop
 	while not game.over():
 		player = game.turn % 2
-		print("Valid moves is", game.find_valid(player))
-		global checked
-		# Take human input
-		if player == 1:
-			y, x = take_turn(game, player)
-			game.go(y, x, player)
+		# print("Valid moves is", game.find_valid(player))
+		# checked = 0
+
+		# Take human input (The white)
+		if player == 0: 
+			# y, x = take_turn(game, player)
+			# game.go(y, x, player)
 			# checked = 0
 			# start_time = time.time()
-			# best = negamax(game, player, player, -math.inf, math.inf, 6)
-			# game.go(best[1], best[2], player)
+			depth = MAX_TURN // 2
+			best = negamax(game, player, player, -math.inf, math.inf, 6)
+			game.go(best[1], best[2], player)
+			print("checked: ", checked)
 			# print("Prediction for best score:", best[0])
 			# print("Time taken: {0:.2}".format(time.time() - start_time))
-			# print("checked: ", checked)
 
-		# Take AI input
+		# Take AI input (The dot)
 		else:
-			checked = 0
 			# start_time = time.time()
+			depth = 5
 			best = negamax(game, player, player, -math.inf, math.inf, 4)
 			game.go(best[1], best[2], player)
+			print("checked: ", checked)
 			# print("Prediction for best score:", best[0])
 			# print("Time taken: {0:.2}".format(time.time() - start_time))
-			print("checked: ", checked)
 
-		game.print_board()
-		print(game.find_score())
-		print("Turn is", game.turn)
+		# game.print_board()
+		# print(game.find_score())
+		# print("Turn is", game.turn)
 	
 	print("Game over")
 	print("Time taken: {}" .format(time.time() - start_time))
@@ -205,65 +213,73 @@ def take_turn(game, player):
 
 # Ai code
 ################################################################################
-def negamax(game, player, maximise, alpha, beta, depth):
+def negamax(game, player, me, alpha, beta, depth):
 	if game.over() or depth == 0:
-		score = game.find_score()[COLOUR[player]]
-		score -= (game.turn) // 2
-		return (heuristic_weight(game, player), 0, 0)
-	depth -= 1
+		if depth != 0 and game.turn > MAX_TURN * (3 / 4):
+			oth = (me + 1) % 2
+			score = (heuristic_score(game, me) - heuristic_score(game, oth))
+		else:
+			score = game.find_score()[COLOUR[player]] - (game.turn + 4) // 2
+		return (score, 0, 0)
 
 	global checked
 	checked += 1
-	best_eval = -math.inf if player == maximise else math.inf
+
+	best_eval = -math.inf
 	valid_moves = game.find_valid(player)
 	valid_moves = heuristic_sort(game, player, valid_moves)
 	best_y, best_x = valid_moves[0]
 
 	for y, x in valid_moves:
-		new_game = copy.deepcopy(game)
-		new_game.go(y, x, player)
-		player = (player + 1) % 2
-		new_eval = negamax(new_game, player, maximise, alpha, beta, depth)
-
-		if player == maximise:
-			alpha = max(alpha, new_eval[0])
-			if best_eval < new_eval[0]:
-				best_eval = new_eval[0]
-				best_y = y
-				best_x = x
-		else:
-			beta = min(beta, new_eval[0])
-			if best_eval > new_eval[0]:
-				best_eval = new_eval[0]
-				best_y = y
-				best_x = x
-
+		new = copy.deepcopy(game)
+		new.go(y, x, player)
+		oth_player = (player + 1) % 2
+		new_eval = negamax(new, oth_player, me, -beta, -alpha, depth - 1)
+		if best_eval < -new_eval[0]:
+			best_eval = -new_eval[0]
+			best_y = y
+			best_x = x
+		alpha = max(alpha, best_eval)
 		if beta <= alpha:
 			break
-
 	return best_eval, best_y, best_x
 
 
+# Sort moves according to which one seems better
 def heuristic_sort(game, player, valid_moves):
 	sorted_moves = []
 	for move in valid_moves:
 		y, x = move
 		sorted_moves.append({"move": move, "weight": weights[y][x]})
-	
 	sorted_moves.sort(key = lambda x:x["weight"], reverse = True)
-
 	return [move["move"] for move in sorted_moves]
 
 
-def heuristic_weight(game, player):
+# Score the game using the heuristic
+def heuristic_score(game, player):
 	score = 0
-	maximise = COLOUR[player]
+	me = COLOUR[player]
 	for y in range(SIZE):
 		for x in range(SIZE):
-			if game.b[y][x] == maximise:
+			if game.b[y][x] == me:
 				score += weights[y][x]
 	return score
 
 
 if __name__ == "__main__":
 	main()
+
+
+# Random notes
+# For (size 8, heuristic v1.0, depth = 5, unsorted):
+#	checks = 17702
+# For (size 8, heuristic v1.0, depth = 5, sorted):
+#	checks = 33333
+# For (size 8, heuristic v1.0, depth = 6, unsorted):
+#	checks = 79042
+# For (size 8, heuristic v1.0, depth = 6, sorted):
+#	checks = 43172
+# For (size 8, heuristic v1.0, depth = 7, unsorted): 
+#	checks = 123289
+# For (size 8, heuristic v1.0, depth = 7, sorted):
+#	checks = 167067 idk why checks is more feelsbadman
