@@ -13,14 +13,14 @@ import time
 
 checked = 0
 weights = [
-	[ 64,  2, 56, 32, 32, 56,  2, 64],
-	[  2,  0,  8,  8,  8,  8,  0,  2],
+	[ 64,-32, 56, 32, 32, 56,-32, 64],
+	[-32,-64,  8,  8,  8,  8,-64,-32],
 	[ 56,  8, 56, 16, 16, 56,  8, 56],
 	[ 32,  8, 16, 16, 16, 16,  8, 32],
 	[ 32,  8, 16, 16, 16, 16,  8, 32],
 	[ 56,  8, 56, 16, 16, 56,  8, 56],
-	[  2,  0,  8,  8,  8,  8,  0, 32],
-	[ 64,  2, 56, 32, 32, 56,  2, 64]
+	[-32,-64,  8,  8,  8,  8,-64,-32],
+	[ 64,-32, 56, 32, 32, 56,-32, 64]
 ]
 
 # Driver code + code to take human input
@@ -44,21 +44,15 @@ def main():
 		if player == 0: 
 			# y, x = take_turn(g, player)
 			# g.go(y, x, player)
-			start_time = time.time()
-			best = negamax(g, player, player, -math.inf, math.inf, 5)
+			best = negamax(g, player, player, -math.inf, math.inf, 4)
 			g.go(best[1], best[2], player)
 			# print("checked: ", checked)
-			# print("Time taken: {0:.2}".format(time.time() - start_time))
-			print("Prediction for best score:", best[0])
 
 		# The "."
 		else:
-			start_time = time.time()
 			best = negamax(g, player, player, -math.inf, math.inf, 1)
 			g.go(best[1], best[2], player)
 			# print("checked: ", checked)
-			# print("Time taken: {0:.2}".format(time.time() - start_time))
-			print("Prediction for best score:", best[0])
 
 		g.print_board()
 		print(g.find_score())
@@ -119,13 +113,6 @@ def negamax(g, player, priority, alpha, beta, depth):
 	return best_eval, best_y, best_x
 
 
-# Dynamic calculation of the weight for each square of current turn
-# def calc_weights(g, player):
-# 	# CHeck how many values the square can flip
-# 	global weights 
-# 	return weights
-
-
 # Sort moves according to which one seems better
 def heuristic_sort(g, player, valid_moves):
 	sorted_moves = []
@@ -136,8 +123,6 @@ def heuristic_sort(g, player, valid_moves):
 		new = copy.deepcopy(g)
 		new.go(y, x, player)
 		rating = heuristic_score(new, player)
-		turn_weight = (math.log(g.max_turn - g.turn) / math.log(g.max_turn))
-		rating += weights[y][x] * turn_weight
 		sorted_moves.append({"move": move, "rating": rating})
 	sorted_moves.sort(key = lambda x:x["rating"], reverse = True)
 	return [move["move"] for move in sorted_moves]
@@ -151,18 +136,53 @@ def heuristic_score(g, player):
 	# Mobility of current turn
 	my_mobility = len(g.find_valid(player))
 	oth_mobility = len(g.find_valid(oth_player))
+	mobility = (my_mobility - oth_mobility) / (my_mobility + oth_mobility + 1)
 
-	# Number of squares
-	score = g.find_score()
-	my_score = score[g.colour[player]]
-	oth_score = score[g.colour[oth_player]]
-	score_weight = g.turn / g.max_turn
+	# Weight of squares and their stabilty
+	my_weight = oth_weight = my_stab = oth_stab = 0
+	for y in range(g.size):
+		for x in range(g.size):
+			if g.b[y][x] == player:
+				my_stab += square_stability(g, player, y, x)
+				my_weight += square_weight(g, player, y, x)
+			elif g.b[y][x] == oth_player:
+				oth_stab += square_stability(g, oth_player, y, x)
+				oth_weight += square_weight(g, oth_player, y, x)
 
-	rating += ((my_score - oth_score) / (g.max_turn + 4)) * score_weight
-	rating += (my_mobility - oth_mobility) / (my_mobility + oth_mobility + 1)
+	stability = (my_stab - oth_stab) / max((my_stab + oth_stab), 1)
+	weight = (my_weight - oth_weight) / max((my_weight + oth_weight), 1)
+	# Stability of squares
+	rating += mobility
+	rating += weight
+	rating += stability
 
 	return rating
 
+
+# Find the stability of a square
+def square_stability(g, player, y, x):
+	stability = 4096
+	row = g.b[y]
+	col = [g.b[i][x] for i in range(8)]
+	left = right = above = below = 0
+	for i in range(g.size):
+		if i < x and row[i] == g.blank:
+			left += 1
+		elif i > x and row[i] == g.blank:
+			right += 1
+		if i < y and col[i] == g.blank:
+			below += 1
+		elif i > y and col[i] == g.blank:
+			above += 1
+	stability /= 2 ** (min(left, right) + min(above, below))
+
+	return stability
+
+
+# Find the weight/ value of a square
+def square_weight(g, player, y, x):
+	weight = weights[y][x]
+	return weight
 
 if __name__ == "__main__":
 	main()
