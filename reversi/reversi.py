@@ -140,8 +140,8 @@ def heuristic_score(g, player):
 
 	# Weight of squares and their stabilty
 	my_weight = oth_weight = my_stab = oth_stab = 0
-	for y in range(g.size):
-		for x in range(g.size):
+	for y in range(8):
+		for x in range(8):
 			if g.b[y][x] == player:
 				my_stab += square_stability(g, player, y, x)
 				my_weight += square_weight(g, player, y, x)
@@ -162,10 +162,12 @@ def heuristic_score(g, player):
 # Find the stability of a square
 def square_stability(g, player, y, x):
 	stability = 4096
+	
+	# CAN ALSO REIMPLEMENT USING DIR VEC ARRAY
 	row = g.b[y]
 	col = [g.b[i][x] for i in range(8)]
 	left = right = above = below = 0
-	for i in range(g.size):
+	for i in range(8):
 		if i < x and row[i] == g.blank:
 			left += 1
 		elif i > x and row[i] == g.blank:
@@ -176,11 +178,33 @@ def square_stability(g, player, y, x):
 			above += 1
 	stability /= 2 ** (min(left, right) + min(above, below))
 
+	tl_above = tl_below = tr_above = tr_below = 0
+	tl_y = 8 - x - 1
+	tl_x = 0
+	tr_y = x
+	tr_x = 7
+	for i in range(8):
+		if g.in_lim(tl_y, tl_x) and g.b[tl_y][tl_x] == g.blank:
+			if tl_y > y:
+				tl_above += 1
+			elif tl_y < y:
+				tl_below += 1
+		if g.in_lim(tr_y, tr_x) and g.b[tr_y][tr_x] == g.blank:
+			if tr_y > y:
+				tr_above += 1
+			elif tr_y < y:
+				tr_below += 1
+		tl_y -= 1
+		tr_y -= 1
+		tl_x += 1
+		tr_x -= 1
+	stability /= 2 **(min(tl_above, tl_below) + min(tr_above, tr_below))
 	return stability
 
 
 # Find the weight/ value of a square
 def square_weight(g, player, y, x):
+	# IMPLEMENT DYNAMIC SQUARE WEIGHTS
 	weight = weights[y][x]
 	return weight
 
