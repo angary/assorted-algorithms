@@ -13,14 +13,14 @@ import time
 
 checked = 0
 weights = [
-	[ 64,-32, 56, 32, 32, 56,-32, 64],
-	[-32,-64,  8,  8,  8,  8,-64,-32],
-	[ 56,  8, 56, 16, 16, 56,  8, 56],
-	[ 32,  8, 16, 16, 16, 16,  8, 32],
-	[ 32,  8, 16, 16, 16, 16,  8, 32],
-	[ 56,  8, 56, 16, 16, 56,  8, 56],
-	[-32,-64,  8,  8,  8,  8,-64,-32],
-	[ 64,-32, 56, 32, 32, 56,-32, 64]
+	[ 64,-64, 56, 32, 32, 56,-64, 64],
+	[-64,-56,  4,  4,  4,  4,-56,-64],
+	[ 56,  4, 56, 16, 16, 56,  4, 56],
+	[ 32,  4, 16, 16, 16, 16,  4, 32],
+	[ 32,  4, 16, 16, 16, 16,  4, 32],
+	[ 56,  4, 56, 16, 16, 56,  4, 56],
+	[-64,-56,  4,  4,  4,  4,-56,-64],
+	[ 64,-64, 56, 32, 32, 56,-64, 64]
 ]
 
 # Driver code + code to take human input
@@ -50,7 +50,7 @@ def main():
 
 		# The "."
 		else:
-			best = negamax(g, player, player, -math.inf, math.inf, 1)
+			best = negamax(g, player, player, -math.inf, math.inf, 2)
 			g.go(best[1], best[2], player)
 			# print("checked: ", checked)
 
@@ -206,6 +206,13 @@ def square_stability(g, player, y, x):
 def square_weight(g, player, y, x):
 	# IMPLEMENT DYNAMIC SQUARE WEIGHTS
 	weight = weights[y][x]
+	# Scuffed method for testing
+	if (((y == 1 and (x == 0 or x == 1)) or (y == 0 and x == 1) and (g.b[0][0] != g.blank))
+		or ((y == 1 and (x == 6 or x == 7)) or (y == 0 and x == 7) and (g.b[0][7] != g.blank))
+		or ((y == 6 and (x == 0 or x == 1)) or (y == 7 and x == 1) and (g.b[7][0] != g.blank))
+		or ((y == 6 and (x == 6 or x == 7)) or (y == 7 and x == 6) and (g.b[7][7] != g.blank))):
+		weight = 48
+			
 	return weight
 
 if __name__ == "__main__":
