@@ -1,25 +1,24 @@
-
-
-
-# Object to contain game data and methods
-################################################################################
 class Game(object):
 
-	def __init__(self, size = 8):
+	def __init__(self, size = 8, player = 0):
 		self.size = size
 		self.turn = 0
+		self.player = player
+		self.offset = 0
 		self.max_turn = (size ** 2) - 4
 		self.blank = "_"
 		self.colour = ["W", ".", "_"]
 		self.dy = [1, 1, 0, -1, -1, -1, 0, 1]
 		self.dx = [0, 1, 1, 1, 0, -1, -1, -1]
 		self.b = [[self.blank for j in range(size)] for i in range(size)]
-		mid_s = (size // 2) - 1
-		mid_b = size // 2
-		self.b[mid_s][mid_s] = 0
-		self.b[mid_b][mid_b] = 0
-		self.b[mid_s][mid_b] = 1
-		self.b[mid_b][mid_s] = 1
+		self.setup_board()
+	
+	# Set up first four squares
+	def setup_board(self):
+		mid_s = (self.size // 2) - 1
+		mid_b = self.size // 2
+		self.b[mid_s][mid_s] = self.b[mid_b][mid_b] = 0
+		self.b[mid_s][mid_b] = self.b[mid_b][mid_s] = 1
 
 	# Print out the board
 	def print_board(self):
@@ -40,14 +39,8 @@ class Game(object):
 	def over(self):
 		if self.turn == self.max_turn:
 			return True
-		if len(self.find_valid(0)) == 0 or len(self.find_valid(1)) == 0:
-			return True
-		whites = 0
-		blacks = 0
-		for y in range(self.size):
-			whites += self.b[y].count(0)
-			blacks += self.b[y].count(1)
-		if whites == 0 or blacks == 0:
+		score = self.find_score()
+		if score[self.colour[0]] == 0 or score[self.colour[1]] == 0:
 			return True
 		return False
 
@@ -55,27 +48,26 @@ class Game(object):
 	def find_score(self):
 		score = {self.colour[0]: 0, self.colour[1]: 0}
 		for y in range(self.size):
-			for x in range(self.size):
-				if self.b[y][x] == 0:
-					score[self.colour[0]] += 1
-				elif self.b[y][x] == 1:
-					score[self.colour[1]] += 1
+			score[self.colour[0]] += self.b[y].count(0)
+			score[self.colour[1]] += self.b[y].count(1)
 		return score
 
 	# Register the player's chosen location on the board
 	def go(self, y, x, player):
-		curr_colour = player
 		oth_colour = (player + 1) % 2
-		self.b[y][x] = curr_colour
-		flip_dirs = self.find_flips(y, x, oth_colour, curr_colour)[0]
-		for dir_index in flip_dirs:
+		self.b[y][x] = player
+		flip_dirs = self.find_flips(y, x, oth_colour, player)[0]
+		for dir in flip_dirs:
 			for mul in range(1, self.size):
-				nY = y + mul * self.dy[dir_index]
-				nX = x + mul * self.dx[dir_index]
-				if not self.in_lim(nY, nX) or self.b[nY][nX] == curr_colour:
+				nY = y + mul * self.dy[dir]
+				nX = x + mul * self.dx[dir]
+				if not self.in_lim(nY, nX) or self.b[nY][nX] == player:
 					break
-				self.b[nY][nX] = curr_colour
+				self.b[nY][nX] = player
 		self.turn += 1
+		if not self.find_valid(oth_colour):
+			self.offset += 1
+		self.player = (self.turn + self.offset) % 2
 
 	# Check if a location is in the board
 	def in_lim(self, y, x):
@@ -102,18 +94,16 @@ class Game(object):
 	def find_flips(self, y, x, oth_player, player):
 		flipped = 0
 		flip_dirs = []
-		for dir_index in range(len(self.dx)):
-			if not self.in_lim(y + self.dy[dir_index], x + self.dx[dir_index]):
-				continue
-			if self.b[y + self.dy[dir_index]][x + self.dx[dir_index]] == oth_player:
-				curr_flipped = 0
-				for mul in range(1, self.size):
-					nY = y + mul * self.dy[dir_index]
-					nX = x + mul * self.dx[dir_index]
-					if not self.in_lim(nY, nX) or self.b[nY][nX] == self.blank:
-						break
-					if self.b[nY][nX] == player:
-						flip_dirs.append(dir_index)
+		for dir in range(len(self.dx)):
+			nY = y + self.dy[dir]
+			nX = x + self.dx[dir]
+			if (self.in_lim(nY, nX) and self.b[nY][nX] == oth_player):
+				curr_flipped = 1
+				for mul in range(self.size):
+					nY += self.dy[dir]
+					nX += self.dx[dir]
+					if (self.in_lim(nY, nX) and (self.b[nY][nX] == player)):
+						flip_dirs.append(dir)
 						flipped += curr_flipped
 						break
 					curr_flipped += 1

@@ -1,7 +1,6 @@
 # Contains the code for implementation of reversi and minimax AI
 # REPLACED "B" WITH "." FOR VISIBILTY
 # TODO:
-# - Dynamic weight calculation
 # - Transposition table (not suitable due to alpha beta pruning, maybe)
 # - Iterative deepening
 # - Principal variation search
@@ -13,14 +12,14 @@ import time
 
 checked = 0
 weights = [
-	[512,-64,256, 16, 16,256,-64,512],
+	[512,-64,256,-16,-16,256,-64,512],
 	[-64,-56,-32,-32,-32,-32,-56,-64],
 	[256,-32,256, 16, 16,256,-32,256],
-	[ 16,-32, 16, 16, 16, 16,-32, 16],
-	[ 16,-32, 16, 16, 16, 16,-32, 16],
+	[-16,-32, 16, 16, 16, 16,-32,-16],
+	[-16,-32, 16, 16, 16, 16,-32,-16],
 	[256,-32,256, 16, 16,256,-32,256],
 	[-64,-56,-32,-32,-32,-32,-56,-64],
-	[512,-64,256, 16, 16,256,-64,512]
+	[512,-64,256,-16,-16,256,-64,512]
 ]
 
 # Driver code + code to take human input
@@ -36,21 +35,21 @@ def main():
 
 	# g loop
 	while not g.over():
-		player = g.turn % 2
+		player = g.player
 		# print("Valid moves is", g.find_valid(player))
 		# checked = 0
 
 		# The "W"
 		if player == 0: 
-			y, x = take_turn(g, player)
-			g.go(y, x, player)
-			# best = negamax(g, player, player, -math.inf, math.inf, 4)
-			# g.go(best[1], best[2], player)
+			# y, x = take_turn(g, player)
+			# g.go(y, x, player)
+			best = negamax(g, player, player, -math.inf, math.inf, 1)
+			g.go(best[1], best[2], player)
 			# print("checked: ", checked)
 
 		# The "."
 		else:
-			best = negamax(g, player, player, -math.inf, math.inf, 4)
+			best = negamax(g, player, player, -math.inf, math.inf, 1)
 			g.go(best[1], best[2], player)
 			# print("checked: ", checked)
 
@@ -85,8 +84,6 @@ def take_turn(g, player):
 # Main code
 def negamax(g, player, priority, alpha, beta, depth):
 
-	# weights = calc_weights(g, player)
-
 	if g.over() or depth == 0:
 		return (heuristic_score(g, priority), -1, -1)
 
@@ -101,8 +98,7 @@ def negamax(g, player, priority, alpha, beta, depth):
 	for y, x in valid_moves:
 		new = copy.deepcopy(g)
 		new.go(y, x, player)
-		oth_player = (player + 1) % 2
-		new_eval = negamax(new, oth_player, priority, -beta, -alpha, depth - 1)
+		new_eval = negamax(new, g.player, priority, -beta, -alpha, depth - 1)
 		if best_eval < -new_eval[0]:
 			best_eval = -new_eval[0]
 			best_y = y
@@ -164,8 +160,8 @@ def heuristic_score(g, player):
 	# Also add checks for corners and frontier length
 
 	rating += corner * 256
-	rating += frontier * .5
-	rating += mobility
+	rating += frontier * (1 - (g.turn / 60))
+	rating += mobility * (1 - (g.turn / 60))
 	rating += weight
 	rating += stability
 
