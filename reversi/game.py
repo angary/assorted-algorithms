@@ -16,10 +16,10 @@ class Game(object):
 		self.b = [[self.blank for j in range(size)] for i in range(size)]
 		mid_s = (size // 2) - 1
 		mid_b = size // 2
-		self.b[mid_s][mid_s] = 1
-		self.b[mid_b][mid_b] = 1
-		self.b[mid_s][mid_b] = 0
-		self.b[mid_b][mid_s] = 0
+		self.b[mid_s][mid_s] = 0
+		self.b[mid_b][mid_b] = 0
+		self.b[mid_s][mid_b] = 1
+		self.b[mid_b][mid_s] = 1
 
 	# Print out the board
 	def print_board(self):

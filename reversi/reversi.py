@@ -13,14 +13,14 @@ import time
 
 checked = 0
 weights = [
-	[ 64,-64, 56, 32, 32, 56,-64, 64],
-	[-64,-56,  4,  4,  4,  4,-56,-64],
-	[ 56,  4, 56, 16, 16, 56,  4, 56],
-	[ 32,  4, 16, 16, 16, 16,  4, 32],
-	[ 32,  4, 16, 16, 16, 16,  4, 32],
-	[ 56,  4, 56, 16, 16, 56,  4, 56],
-	[-64,-56,  4,  4,  4,  4,-56,-64],
-	[ 64,-64, 56, 32, 32, 56,-64, 64]
+	[512,-64,256, 16, 16,256,-64,512],
+	[-64,-56,-32,-32,-32,-32,-56,-64],
+	[256,-32,256, 16, 16,256,-32,256],
+	[ 16,-32, 16, 16, 16, 16,-32, 16],
+	[ 16,-32, 16, 16, 16, 16,-32, 16],
+	[256,-32,256, 16, 16,256,-32,256],
+	[-64,-56,-32,-32,-32,-32,-56,-64],
+	[512,-64,256, 16, 16,256,-64,512]
 ]
 
 # Driver code + code to take human input
@@ -42,15 +42,15 @@ def main():
 
 		# The "W"
 		if player == 0: 
-			# y, x = take_turn(g, player)
-			# g.go(y, x, player)
-			best = negamax(g, player, player, -math.inf, math.inf, 4)
-			g.go(best[1], best[2], player)
+			y, x = take_turn(g, player)
+			g.go(y, x, player)
+			# best = negamax(g, player, player, -math.inf, math.inf, 4)
+			# g.go(best[1], best[2], player)
 			# print("checked: ", checked)
 
 		# The "."
 		else:
-			best = negamax(g, player, player, -math.inf, math.inf, 2)
+			best = negamax(g, player, player, -math.inf, math.inf, 4)
 			g.go(best[1], best[2], player)
 			# print("checked: ", checked)
 
@@ -136,7 +136,17 @@ def heuristic_score(g, player):
 	# Mobility of current turn
 	my_mobility = len(g.find_valid(player))
 	oth_mobility = len(g.find_valid(oth_player))
-	mobility = (my_mobility - oth_mobility) / (my_mobility + oth_mobility + 1)
+	mobility = (my_mobility - oth_mobility) / max((my_mobility + oth_mobility), 1)
+
+	# PLayer Corner count
+	my_corners = corner_count(g, player)
+	oth_corners = corner_count(g, oth_player)
+	corner = (my_corners - oth_corners) / max((my_corners + oth_corners), 1)
+
+	# PLayer frontier count
+	my_frontier = frontier_count(g, player)
+	oth_frontier = frontier_count(g, oth_player)
+	frontier = (my_frontier - oth_frontier) / max((my_frontier + oth_frontier), 1)
 
 	# Weight of squares and their stabilty
 	my_weight = oth_weight = my_stab = oth_stab = 0
@@ -148,10 +158,13 @@ def heuristic_score(g, player):
 			elif g.b[y][x] == oth_player:
 				oth_stab += square_stability(g, oth_player, y, x)
 				oth_weight += square_weight(g, oth_player, y, x)
-
 	stability = (my_stab - oth_stab) / max((my_stab + oth_stab), 1)
 	weight = (my_weight - oth_weight) / max((my_weight + oth_weight), 1)
-	# Stability of squares
+
+	# Also add checks for corners and frontier length
+
+	rating += corner * 256
+	rating += frontier * .5
 	rating += mobility
 	rating += weight
 	rating += stability
@@ -214,6 +227,37 @@ def square_weight(g, player, y, x):
 		weight = 48
 			
 	return weight
+
+
+# Find how many corner a player owns
+def corner_count(g, player):
+	corners = 0
+	if g.b[0][0] == player:
+		corners += 1
+	if g.b[7][0] == player:
+		corners += 1
+	if g.b[0][7] == player:
+		corners += 1
+	if g.b[7][7] == player:
+		corners += 1
+	return corners
+
+
+# Check number of the squares on the player's frontier
+def frontier_count(g, player):
+	dy = [ 1, 0,-1, 0]
+	dx = [ 0, 1, 0,-1]
+	count = 0
+	for y in range(8):
+		for x in range(8):
+			if g.b[y][x] == player:
+				for i in range(4):
+					nY = y + dy[i]
+					nX = x + dx[i]
+					if g.in_lim(nY, nX) and g.b[nY][nX] != player:
+						count += 1
+	return count
+
 
 if __name__ == "__main__":
 	main()
