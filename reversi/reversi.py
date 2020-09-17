@@ -31,32 +31,27 @@ def main():
 	print("Enter positions as <letter><number>, i.e. a1")
 	g.print_board()
 	start_time = time.time()
-	global checked
 
 	# g loop
 	while not g.over():
-		player = g.player
-		# print("Valid moves is", g.find_valid(player))
-		# checked = 0
 
 		# The "W"
-		if player == 0: 
+		if g.player == 0: 
 			# y, x = take_turn(g, player)
 			# g.go(y, x, player)
-			best = negamax(g, player, player, -math.inf, math.inf, 1)
-			g.go(best[1], best[2], player)
-			# print("checked: ", checked)
+			best = minimax(g, g.player, -math.inf, math.inf, 4)
+			g.go(best[1], best[2])
 
 		# The "."
 		else:
-			best = negamax(g, player, player, -math.inf, math.inf, 1)
-			g.go(best[1], best[2], player)
-			# print("checked: ", checked)
+			best = minimax(g, g.player, -math.inf, math.inf, 4)
+			g.go(best[1], best[2])
 
-		g.print_board()
-		print(g.find_score())
-		print("Turn is", g.turn)
+		# g.print_board()
+		# print(g.find_score())
+		# print("Turn is", g.turn)
 	
+	print("Checked:", checked)
 	print("Game over")
 	print("Time taken: {}" .format(time.time() - start_time))
 	g.print_board()
@@ -82,7 +77,7 @@ def take_turn(g, player):
 ################################################################################
 
 # Main code
-def negamax(g, player, priority, alpha, beta, depth):
+def minimax(g, priority, alpha, beta, depth):
 
 	if g.over() or depth == 0:
 		return (heuristic_score(g, priority), -1, -1)
@@ -90,20 +85,28 @@ def negamax(g, player, priority, alpha, beta, depth):
 	global checked
 	checked += 1
 
-	best_eval = -math.inf
-	valid_moves = g.find_valid(player)
-	valid_moves = heuristic_sort(g, player, valid_moves)
+	valid_moves = g.find_valid(g.player)
+	valid_moves = heuristic_sort(g, g.player, valid_moves)
 	best_y, best_x = valid_moves[0]
+	best_eval = -math.inf if g.player == priority else math.inf
 
 	for y, x in valid_moves:
 		new = copy.deepcopy(g)
-		new.go(y, x, player)
-		new_eval = negamax(new, g.player, priority, -beta, -alpha, depth - 1)
-		if best_eval < -new_eval[0]:
-			best_eval = -new_eval[0]
-			best_y = y
-			best_x = x
-		alpha = max(alpha, best_eval)
+		new.go(y, x)
+		new_eval = minimax(new, priority, alpha, beta, depth - 1)
+		new_eval = new_eval[0]
+		if g.player == priority:
+			if new_eval > best_eval:
+				best_eval = new_eval
+				best_y = y
+				best_x = x
+			alpha = max(alpha, best_eval)
+		else:
+			if new_eval < best_eval:
+				best_eval = new_eval
+				best_y = y
+				best_x = x
+			beta = min(beta, best_eval)
 		if beta <= alpha:
 			break
 	return best_eval, best_y, best_x
@@ -117,7 +120,7 @@ def heuristic_sort(g, player, valid_moves):
 		# Make the mov and check the score of the new game
 		# sorted_moves.append({"move": move, "weight": weights[y][x]})
 		new = copy.deepcopy(g)
-		new.go(y, x, player)
+		new.go(y, x)
 		rating = heuristic_score(new, player)
 		sorted_moves.append({"move": move, "rating": rating})
 	sorted_moves.sort(key = lambda x:x["rating"], reverse = True)
