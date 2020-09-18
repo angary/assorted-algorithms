@@ -2,7 +2,7 @@ class Game(object):
 
 	def __init__(self, player = 0):
 		self.turn = 0
-		self.player = player
+		self.p = player
 		self.offset = 0
 		self.blank = "_"
 		self.colour = ["W", ".", "_"]
@@ -48,20 +48,20 @@ class Game(object):
 
 	# Register the player's chosen location on the board
 	def go(self, y, x):
-		oth_colour = (self.player + 1) % 2
-		self.b[y][x] = self.player
-		flip_dirs = self.find_flips(y, x, oth_colour, self.player)[0]
+		oth_colour = (self.p + 1) % 2
+		self.b[y][x] = self.p
+		flip_dirs = self.find_flips(y, x, oth_colour, self.p)[0]
 		for direc in flip_dirs:
 			for mul in range(1, 8):
 				nY = y + mul * self.dy[direc]
 				nX = x + mul * self.dx[direc]
-				if not self.in_lim(nY, nX) or self.b[nY][nX] == self.player:
+				if not self.in_lim(nY, nX) or self.b[nY][nX] == self.p:
 					break
-				self.b[nY][nX] = self.player
+				self.b[nY][nX] = self.p
 		self.turn += 1
 		if not self.find_valid(oth_colour):
 			self.offset += 1
-		self.player = (self.turn + self.offset) % 2
+		self.p = (self.turn + self.offset) % 2
 
 	# Check if a location is in the board
 	def in_lim(self, y, x):

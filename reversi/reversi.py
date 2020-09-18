@@ -10,48 +10,56 @@ import math
 import copy
 import time
 
+# Global variables because I'm lazy
 checked = 0
+saved = 0
+transposition_table = {}
 weights = [
-	[512,-64,256,-16,-16,256,-64,512],
-	[-64,-56,-32,-32,-32,-32,-56,-64],
-	[256,-32,256, 16, 16,256,-32,256],
-	[-16,-32, 16, 16, 16, 16,-32,-16],
-	[-16,-32, 16, 16, 16, 16,-32,-16],
-	[256,-32,256, 16, 16,256,-32,256],
-	[-64,-56,-32,-32,-32,-32,-56,-64],
-	[512,-64,256,-16,-16,256,-64,512]
+	[ 512,-256, 256, -16, -16, 256,-256, 512],
+	[-256,-256, -32, -32, -32, -32,-256,-256],
+	[ 256, -32, 256,  16,  16, 256, -32, 256],
+	[ -16, -32,  16,  16,  16,  16, -32, -16],
+	[ -16, -32,  16,  16,  16,  16, -32, -16],
+	[ 256, -32, 256,  16,  16, 256, -32, 256],
+	[-256,-256, -32, -32, -32, -32,-256,-256],
+	[ 512,-256, 256, -16, -16, 256,-256, 512]
 ]
 
 # Driver code + code to take human input
 ################################################################################
 def main():
 	g = Game()
-
 	print("Game started")
 	print("Enter positions as <letter><number>, i.e. a1")
 	g.print_board()
 	start_time = time.time()
-
+	
+	depth = 5
 	# g loop
 	while not g.over():
 
+		curr = checked
 		# The "W"
-		if g.player == 0: 
-			# y, x = take_turn(g, player)
-			# g.go(y, x, player)
-			best = minimax(g, g.player, -math.inf, math.inf, 4)
-			g.go(best[1], best[2])
+		if g.p == 1: 
+			y, x = take_turn(g, g.p)
+			g.go(y, x)
+			# best = minimax(g, g.p, -math.inf, math.inf, depth)
+			# g.go(best[1], best[2])
 
 		# The "."
 		else:
-			best = minimax(g, g.player, -math.inf, math.inf, 4)
+			best = minimax(g, g.p, -math.inf, math.inf, depth)
 			g.go(best[1], best[2])
 
-		# g.print_board()
-		# print(g.find_score())
-		# print("Turn is", g.turn)
-	
+		g.print_board()
+		print(g.find_score())
+		print("Turn is", g.turn, "\ttotal:", checked, "\tprev:", checked - curr)
+
+		if g.turn > 50:
+			depth += 1
+
 	print("Checked:", checked)
+	print("Saved:", saved)
 	print("Game over")
 	print("Time taken: {}" .format(time.time() - start_time))
 	g.print_board()
@@ -73,29 +81,52 @@ def take_turn(g, player):
 	return y, x
 
 
-# Ai code
+# AI utils
 ################################################################################
+# Generates a zobrist key for the board
+def zobrist_key(g):
+	mul = 1
+	key = 0
+	for y in range(8):
+		for x in range(8):
+			piece = g.b[y][x]
+			if piece != g.blank:
+				key += piece * mul
+			else:
+				key += 2 * mul
+			mul *= 3
+	return key
 
+
+# Actual AI algorithm (Computer Sciency stuff)
+################################################################################
 # Main code
 def minimax(g, priority, alpha, beta, depth):
 
 	if g.over() or depth == 0:
-		return (heuristic_score(g, priority), -1, -1)
+		key = zobrist_key(g)
+		if key in transposition_table:
+			score = transposition_table[key]
+			global saved
+			saved += 1
+		else:
+			score = heuristic_score(g, priority)
+			transposition_table[key] = score
+		return (score, -1, -1)
 
 	global checked
 	checked += 1
 
-	valid_moves = g.find_valid(g.player)
-	valid_moves = heuristic_sort(g, g.player, valid_moves)
+	valid_moves = heuristic_sort(g, g.find_valid(g.p))
 	best_y, best_x = valid_moves[0]
-	best_eval = -math.inf if g.player == priority else math.inf
+	best_eval = -math.inf if g.p == priority else math.inf
 
 	for y, x in valid_moves:
 		new = copy.deepcopy(g)
 		new.go(y, x)
 		new_eval = minimax(new, priority, alpha, beta, depth - 1)
 		new_eval = new_eval[0]
-		if g.player == priority:
+		if g.p == priority:
 			if new_eval > best_eval:
 				best_eval = new_eval
 				best_y = y
@@ -113,7 +144,7 @@ def minimax(g, priority, alpha, beta, depth):
 
 
 # Sort moves according to which one seems better
-def heuristic_sort(g, player, valid_moves):
+def heuristic_sort(g, valid_moves):
 	sorted_moves = []
 	for move in valid_moves:
 		y, x = move
@@ -121,58 +152,61 @@ def heuristic_sort(g, player, valid_moves):
 		# sorted_moves.append({"move": move, "weight": weights[y][x]})
 		new = copy.deepcopy(g)
 		new.go(y, x)
-		rating = heuristic_score(new, player)
+		rating = heuristic_score(new, g.p)
 		sorted_moves.append({"move": move, "rating": rating})
 	sorted_moves.sort(key = lambda x:x["rating"], reverse = True)
 	return [move["move"] for move in sorted_moves]
 
 
+# AI Heuristic stuff
+################################################################################
+
 # Score the game using the heuristic
-def heuristic_score(g, player):
+def heuristic_score(g, p):
 	rating = 0
-	oth_player = (player + 1) % 2
+	oth_p = (p + 1) % 2
 
 	# Mobility of current turn
-	my_mobility = len(g.find_valid(player))
-	oth_mobility = len(g.find_valid(oth_player))
-	mobility = (my_mobility - oth_mobility) / max((my_mobility + oth_mobility), 1)
+	my_mobility = len(g.find_valid(p))
+	oth_mobility = len(g.find_valid(oth_p))
+	total_mobility = my_mobility + oth_mobility
+	mobility = (my_mobility - oth_mobility) / max(total_mobility, 1)
 
 	# PLayer Corner count
-	my_corners = corner_count(g, player)
-	oth_corners = corner_count(g, oth_player)
-	corner = (my_corners - oth_corners) / max((my_corners + oth_corners), 1)
+	corners = corner_count(g)
+	my_corners = corners[p]
+	oth_corners = corners[oth_p]
+	total_corners = my_corners + oth_corners
+	corner = (my_corners - oth_corners) / max(total_corners, 1)
 
 	# PLayer frontier count
-	my_frontier = frontier_count(g, player)
-	oth_frontier = frontier_count(g, oth_player)
+	my_frontier = frontier_count(g, p)
+	oth_frontier = frontier_count(g, oth_p)
 	frontier = (my_frontier - oth_frontier) / max((my_frontier + oth_frontier), 1)
 
 	# Weight of squares and their stabilty
-	my_weight = oth_weight = my_stab = oth_stab = 0
+	weights = stabs = [0, 0]
 	for y in range(8):
 		for x in range(8):
-			if g.b[y][x] == player:
-				my_stab += square_stability(g, player, y, x)
-				my_weight += square_weight(g, player, y, x)
-			elif g.b[y][x] == oth_player:
-				oth_stab += square_stability(g, oth_player, y, x)
-				oth_weight += square_weight(g, oth_player, y, x)
-	stability = (my_stab - oth_stab) / max((my_stab + oth_stab), 1)
+			if g.b[y][x] != g.blank:
+				piece = g.b[y][x]
+				weights[piece] += square_stability(g, y, x)
+				stabs[piece] += square_weight(g, y, x)
+	my_weight = weights[p]
+	oth_weight = weights[oth_p]
+	stability = (stabs[p] - stabs[oth_p]) / max((stabs[p] + stabs[oth_p]), 1)
 	weight = (my_weight - oth_weight) / max((my_weight + oth_weight), 1)
 
-	# Also add checks for corners and frontier length
 
-	rating += corner * 256
-	rating += frontier * (1 - (g.turn / 60))
-	rating += mobility * (1 - (g.turn / 60))
-	rating += weight
-	rating += stability
+	rating += corner * 6
+	rating += (1 - g.turn / 60) * (frontier +  mobility + weight)
+	rating += (1 + (3 * g.turn) / 60) * stability
 
 	return rating
 
 
 # Find the stability of a square
-def square_stability(g, player, y, x):
+def square_stability(g, y, x):
 	stability = 4096
 	
 	# CAN ALSO REIMPLEMENT USING DIR VEC ARRAY
@@ -210,12 +244,12 @@ def square_stability(g, player, y, x):
 		tr_y -= 1
 		tl_x += 1
 		tr_x -= 1
-	stability /= 2 **(min(tl_above, tl_below) + min(tr_above, tr_below))
+	stability /= 2 ** (min(tl_above, tl_below) + min(tr_above, tr_below))
 	return stability
 
 
 # Find the weight/ value of a square
-def square_weight(g, player, y, x):
+def square_weight(g, y, x):
 	# IMPLEMENT DYNAMIC SQUARE WEIGHTS
 	weight = weights[y][x]
 	# Scuffed method for testing
@@ -229,16 +263,16 @@ def square_weight(g, player, y, x):
 
 
 # Find how many corner a player owns
-def corner_count(g, player):
-	corners = 0
-	if g.b[0][0] == player:
-		corners += 1
-	if g.b[7][0] == player:
-		corners += 1
-	if g.b[0][7] == player:
-		corners += 1
-	if g.b[7][7] == player:
-		corners += 1
+def corner_count(g):
+	corners = [0, 0]
+	if g.b[0][0] != g.blank:
+		corners[g.b[0][0]] += 1
+	if g.b[7][0] != g.blank:
+		corners[g.b[7][0]] += 1
+	if g.b[0][7] != g.blank:
+		corners[g.b[0][7]] += 1
+	if g.b[7][7] != g.blank:
+		corners[g.b[7][7]] += 1
 	return corners
 
 
