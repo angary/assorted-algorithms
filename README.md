@@ -29,7 +29,7 @@ Reads a text file, and then generates a new piece of text using the same immedia
 
 
 <h2>reversi</h2><b>Sep 2020 (Work in progress)</b><br>
-An implementation of the game 'Reversi' along with an AI to play against.
+An basic command line implementation of the game 'Reversi' along with an AI to play against.
 <br><br>
 
-*Command line game with an AI opponent which uses a negamax (variation of minimax) algorithm with alpha beta pruning.*
+*Command line game with an AI opponent which uses a minimax algorithm, with move sorting and alpha beta pruning. Heuristics used includes - mobility, corners captured, frontier length, stability, and 'value' of a square. Extra optimisations - transposition table.*
