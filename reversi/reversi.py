@@ -12,7 +12,6 @@ import time
 
 # Global variables because I'm lazy
 checked = 0
-saved = 0
 transposition_table = {}
 weights = [
 	[ 512,-256, 256, -16, -16, 256,-256, 512],
@@ -34,23 +33,20 @@ def main():
 	g.print_board()
 	start_time = time.time()
 	
+	# Depth for minimax search
 	depth = 5
-	# g loop
+
 	while not g.over():
 
+		# Take input
 		curr = checked
-		# The "W"
-		if g.p == 1: 
-			y, x = take_turn(g, g.p)
-			g.go(y, x)
-			# best = minimax(g, g.p, -math.inf, math.inf, depth)
-			# g.go(best[1], best[2])
-
-		# The "."
+		if g.p == 0: 
+			human_turn(g, g.p)
 		else:
-			best = minimax(g, g.p, -math.inf, math.inf, depth)
-			g.go(best[1], best[2])
-
+			computer_turn(g, depth)
+		
+		# Print out values
+		print("Player is", g.p)
 		g.print_board()
 		print(g.find_score())
 		print("Turn is", g.turn, "\ttotal:", checked, "\tprev:", checked - curr)
@@ -58,8 +54,8 @@ def main():
 		if g.turn > 50:
 			depth += 1
 
+	# Game over
 	print("Checked:", checked)
-	print("Saved:", saved)
 	print("Game over")
 	print("Time taken: {}" .format(time.time() - start_time))
 	g.print_board()
@@ -67,18 +63,28 @@ def main():
 
 
 # Take the input from human player
-def take_turn(g, player):
+def human_turn(g, player):
 	while True:
 		print("Currently", g.colour[player])
-		try:
-			loc = input("Choose position: ")
+		# try:
+		loc = input("Choose position: ").strip()
+		if loc == "u" or loc == "U":
+			g.undo()
+			return
+		else:
 			x, y = int(ord(loc[0].lower()) - int(ord('a'))), int(loc[1]) - 1
 			if g.in_lim(y, x) and g.valid(y, x, player):
 				break
 			print("Invalid location", loc)
-		except:
-			print("Invalid input")
-	return y, x
+		# except:
+			# print("Invalid input")
+	g.go(y, x)
+
+
+# Take the computer's turn
+def computer_turn(g, depth):
+	best = minimax(g, g.p, -math.inf, math.inf, depth)
+	g.go(best[1], best[2])
 
 
 # AI utils
@@ -107,8 +113,6 @@ def minimax(g, priority, alpha, beta, depth):
 		key = zobrist_key(g)
 		if key in transposition_table:
 			score = transposition_table[key]
-			global saved
-			saved += 1
 		else:
 			score = heuristic_score(g, priority)
 			transposition_table[key] = score
@@ -224,8 +228,9 @@ def square_stability(g, y, x):
 			above += 1
 	stability /= 2 ** (min(left, right) + min(above, below))
 
+	# Check top left, and top right diagonals
 	tl_above = tl_below = tr_above = tr_below = 0
-	tl_y = 8 - x - 1
+	tl_y = 7 - x
 	tl_x = 0
 	tr_y = x
 	tr_x = 7
