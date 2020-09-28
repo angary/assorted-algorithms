@@ -1,4 +1,4 @@
-from copy import copy, deepcopy
+from copy import deepcopy
 
 class Game(object):
 
@@ -34,9 +34,6 @@ class Game(object):
 	# Check if the game is over
 	def over(self):
 		if self.turn == 60:
-			return True
-		score = self.find_score()
-		if score[self.colour[0]] == 0 or score[self.colour[1]] == 0:
 			return True
 		if len(self.find_valid(0)) == 0 and len(self.find_valid(1)) == 0:
 			return True
@@ -82,7 +79,7 @@ class Game(object):
 
 	# Flip over the squares on the board
 	def flip_squares(self, y, x, oth_player):
-		flip_dirs = self.find_flips(y, x, oth_player, self.p)[0]
+		flip_dirs = self.find_flips(y, x, oth_player, self.p)['flip_dirs']
 		for direc in flip_dirs:
 			for mul in range(1, 8):
 				nY = y + mul * self.dy[direc]
@@ -109,21 +106,18 @@ class Game(object):
 		if self.b[y][x] != self.blank:
 			return 0
 		oth_player = (player + 1) % 2
-		flip_dirs, flipped = self.find_flips(y, x, oth_player, player)
-		return flipped
+		return self.find_flips(y, x, oth_player, player)['flipped']
 
 	# Find which direction a move flips, and how many it flips
 	def find_flips(self, y, x, oth_player, player):
 		flipped = 0
 		flip_dirs = []
 		for dir_index in range(8):
-			if not self.in_lim(y + self.dy[dir_index], x + self.dx[dir_index]):
-				continue
-			if self.b[y + self.dy[dir_index]][x + self.dx[dir_index]] == oth_player:
+			nY = y + self.dy[dir_index]
+			nX = x + self.dx[dir_index]
+			if self.in_lim(nY, nX) and self.b[nY][nX] == oth_player:
 				curr_flipped = 0
-				for mul in range(1, 8):
-					nY = y + mul * self.dy[dir_index]
-					nX = x + mul * self.dx[dir_index]
+				for _ in range(7):
 					if not self.in_lim(nY, nX) or self.b[nY][nX] == "_":
 						break
 					if self.b[nY][nX] == player:
@@ -131,4 +125,6 @@ class Game(object):
 						flipped += curr_flipped
 						break
 					curr_flipped += 1
-		return flip_dirs, flipped
+					nY += self.dy[dir_index]
+					nX += self.dx[dir_index]
+		return {'flip_dirs': flip_dirs, 'flipped': flipped}
