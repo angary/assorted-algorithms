@@ -3,27 +3,28 @@ A bunch of algorithms that I decided to showcase. If I'm currently working on so
 <br><br>
 
 
-
-[true false practise](true_false_practise.py)</br>
+## true false practise
+<b>[Link](true&#32;false&#32;practise.py) | Oct 2019</b></br>
 First piece of code I uploaded to github in this previously private repo, held here for SenTimEnTaL vAluE.
 <br><br>
 
 
-
-[magic_knights_tour](magic_knights_tour.py)<br>
-<b>Generates path for a knight at any starting point, so it reaches every square on a chess board once, and if we plot the turn when it reached a square, on that square of the board, the sum of turns on all rows and columns of the board is equal.</b>
+## magic knights tour
+<b>[Link](magic_knights_tour.py) | Aug 2020</b><br>
+<b>Generates magic knights tour given any starting point.</b>
 <br>
-Given a starting point, it uses a recursive backtracking solve involving regular quartes, Warnsdorff's heuristic and quad backtracking to generate a path.
+Uses a recursive backtracking solve involving regular quartes, Warnsdorff's heuristic and quad backtracking.
 <br><br>
 
 
-[markov_chain_text](markov_chain_text.py)<br>
+## markov chain text
+<b>[Link](markov_chain_text.py) | Sep 2020</b><br>
 <b>Reads text file, and generates a new piece of text using the same immediate word probabilities.</b></br>
-Generates a markov chain (weighted directed graph) from a given text, where each vertex is a word pointing to words that came after it in the text, with number of occurences as edge weight. The text is generated through a series of probablistic state transitions from each vertex.
+Generates graph of words from given text. New text is generated through markov chain, where the next word chosen is based off the current word and original text's probabilistic rules.
 <br><br>
 
 
-[reversi](reversi)
-<b>(Work in progress)</b><br>
-<b>A command line implementation of the game 'Reversi' along with an AI to play against.</b></br>
-Uses a minimax algorithm, with move sorting and alpha beta pruning. Heuristics includes - mobility, corners captured, frontier length, stability, and 'value' of a square. Extra optimisations - transposition table and zobrist keys.
+## reversi
+<b>[Link](reversi) | Oct 2020 | (Work in progress) </b><br>
+<b>A command line implementation of the board game 'Reversi' along with an AI to play against.</b></br>
+Algorithms used: minimax, move sorting, alpha beta pruning, transposition table, and zobrist keys. Heuristics used: mobility, corners captured, frontier length, stability, and predetermined value of square.
