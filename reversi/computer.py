@@ -24,9 +24,6 @@ def minimax(g, priority, alpha, beta, depth):
 	if g.over() or depth == 0:
 		return find_score(g, priority)
 
-	global checked
-	checked += 1
-
 	valid_moves = heuristic_sort(g, g.find_valid(g.p))
 	best_y, best_x = valid_moves[0]
 	best_eval = -math.inf if g.p == priority else math.inf
@@ -165,55 +162,47 @@ def weight_score(g, player, oth_player):
 
 # Calculate how hard it is for a player to change the configuration of the board
 def stability_score(g, player, oth_player):
-	stabilities = [0, 0]
+	stabils = [0, 0]
 	for y in range(8):
 		for x in range(8):
 			if g.b[y][x] != g.blank:
-				stabilities[g.b[y][x]] += square_stability(g, y, x)
-	return (stabilities[player] - stabilities[oth_player]) / max(sum(stabilities), 1)
+				stabils[g.b[y][x]] += square_stabil(g, y, x)
+	return (stabils[player] - stabils[oth_player]) / max(sum(stabils), 1)
 
 
 # Find the stability of a square
-def square_stability(g, y, x):
-	stability = 4096
-	
-	# CAN ALSO REIMPLEMENT USING DIR VEC ARRAY
-	row = g.b[y]
-	col = [g.b[i][x] for i in range(8)]
-	left = right = above = below = 0
-	for i in range(8):
-		if i < x and row[i] == g.blank:
-			left += 1
-		elif i > x and row[i] == g.blank:
-			right += 1
-		if i < y and col[i] == g.blank:
-			below += 1
-		elif i > y and col[i] == g.blank:
-			above += 1
-	stability /= 2 ** (min(left, right) + min(above, below))
+def square_stabil(g, y, x):
+	opposition = (g.b[y][x] + 1) % 2
 
-	# Check top left, and top right diagonals
-	tl_above = tl_below = tr_above = tr_below = 0
-	tl_y = 7 - x
-	tl_x = 0
-	tr_y = x
-	tr_x = 7
-	for i in range(8):
-		if g.in_lim(tl_y, tl_x) and g.b[tl_y][tl_x] == g.blank:
-			if tl_y > y:
-				tl_above += 1
-			elif tl_y < y:
-				tl_below += 1
-		if g.in_lim(tr_y, tr_x) and g.b[tr_y][tr_x] == g.blank:
-			if tr_y > y:
-				tr_above += 1
-			elif tr_y < y:
-				tr_below += 1
-		tl_y -= 1
-		tr_y -= 1
-		tl_x += 1
-		tr_x -= 1
-	stability /= 2 ** (min(tl_above, tl_below) + min(tr_above, tr_below))
+	stability = 64
+	oppositions = [False for _ in range(8)]
+	blanks = [0 for _ in range(8)]
+	for direction in range(8):
+		for distance in range(1, 8):
+			nY = y + g.dy[direction] * distance
+			nX = x + g.dx[direction] * distance
+			if g.in_lim(nY, nX):
+				if g.b[nY][nX] == g.blank:
+					blanks[direction] += 1
+				if blanks[direction] == 0 and g.b[y][x] == opposition:
+					oppositions[direction] == True
+	
+	# Double stability if square cannot be immediately flipped in a direction
+	for direction in range(8):
+		if oppositions[(direction + 4) % 8] and blanks[direction] > 0:
+			stability //= 2
+		else:
+			stability *= 2
+	
+	# Consider future stability of square
+	for direction in range(4):
+
+		min_blank = min(blanks[direction], blanks[direction + 4])
+		if min_blank % 2 == 0:
+			stability *= 2
+		else:
+			stability //= 2
+		stability //= 2 ** min_blank
 	return stability
 
 
