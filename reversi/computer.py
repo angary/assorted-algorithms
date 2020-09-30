@@ -95,47 +95,82 @@ def zobrist_key(g):
 # AI Heuristic (Mathyish stuff)
 ################################################################################
 # Score the game using the heuristic
-def heuristic_score(g, p):
+def heuristic_score(g, player):
 	rating = 0
-	oth_p = (p + 1) % 2
+	oth_player = (player + 1) % 2
 
-	# Mobility of current turn
-	my_mobility = len(g.find_valid(p))
-	oth_mobility = len(g.find_valid(oth_p))
-	total_mobility = my_mobility + oth_mobility
-	mobility = (my_mobility - oth_mobility) / max(total_mobility, 1)
-
-	# PLayer Corner count
-	corners = corner_count(g)
-	my_corners = corners[p]
-	oth_corners = corners[oth_p]
-	total_corners = my_corners + oth_corners
-	corner = (my_corners - oth_corners) / max(total_corners, 1)
-
-	# PLayer frontier count
-	my_frontier = frontier_count(g, p)
-	oth_frontier = frontier_count(g, oth_p)
-	frontier = (my_frontier - oth_frontier) / max((my_frontier + oth_frontier), 1)
-
-	# Weight of squares and their stabilty
-	weights = stabs = [0, 0]
-	for y in range(8):
-		for x in range(8):
-			if g.b[y][x] != g.blank:
-				piece = g.b[y][x]
-				weights[piece] += square_stability(g, y, x)
-				stabs[piece] += square_weight(g, y, x)
-	my_weight = weights[p]
-	oth_weight = weights[oth_p]
-	stability = (stabs[p] - stabs[oth_p]) / max((stabs[p] + stabs[oth_p]), 1)
-	weight = (my_weight - oth_weight) / max((my_weight + oth_weight), 1)
-
+	mobility = mobility_score(g, player, oth_player)
+	corner = corner_score(g, player, oth_player)
+	frontier = frontier_score(g, player, oth_player)
+	weight = weight_score(g, player, oth_player)
+	stability = stability_score(g, player, oth_player)
 
 	rating += corner * 6
 	rating += (1 - g.turn / 60) * (frontier +  mobility + weight)
 	rating += (1 + (3 * g.turn) / 60) * stability
 
 	return rating
+
+
+# Determine if the current player has better mobility
+def mobility_score(g, player, oth_player):
+	my_mobility = len(g.find_valid(player))
+	oth_mobility = len(g.find_valid(oth_player))
+	total_mobility = my_mobility + oth_mobility
+	return (my_mobility - oth_mobility) / max(total_mobility, 1)
+
+
+# Find how many corner a player owns
+def corner_score(g, player, oth_player):
+	corners = [0, 0]
+	if g.b[0][0] != g.blank:
+		corners[g.b[0][0]] += 1
+	if g.b[7][0] != g.blank:
+		corners[g.b[7][0]] += 1
+	if g.b[0][7] != g.blank:
+		corners[g.b[0][7]] += 1
+	if g.b[7][7] != g.blank:
+		corners[g.b[7][7]] += 1
+	return (corners[player] - corners[oth_player]) / max(sum(corners), 1)
+
+
+# Check number of the squares on the player's frontier
+def frontier_score(g, player, oth_player):
+	visited = [[[False for k in range(8)] for j in range(8)] for i in range(2)]
+	frontier = [0, 0]
+	for y in range(8):
+		for x in range(8):
+			if g.b[y][x] != g.blank:
+				curr_player = g.b[y][x]
+				for i in range(8):
+					nY = y + g.dy[i]
+					nX = x + g.dx[i]
+					if (g.in_lim(nY, nX) and g.b[nY][nX] != curr_player
+						and visited[curr_player][nY][nX] == False):
+						visited[curr_player][nY][nX] = True
+						frontier[curr_player] += 1
+	return (frontier[player] - frontier[oth_player]) / max(sum(frontier), 1)
+
+
+# Calculate the value of the board based on predetermined weights
+def weight_score(g, player, oth_player):
+	weights = [0, 0]
+	for y in range(8):
+		for x in range(8):
+			if g.b[y][x] != g.blank:
+				weights[g.b[y][x]] += square_weight(g, y, x)
+	sum_weights = 1 if sum(weights) == 0 else sum(weights)
+	return (weights[player] - weights[oth_player]) / sum_weights
+
+
+# Calculate how hard it is for a player to change the configuration of the board
+def stability_score(g, player, oth_player):
+	stabilities = [0, 0]
+	for y in range(8):
+		for x in range(8):
+			if g.b[y][x] != g.blank:
+				stabilities[g.b[y][x]] += square_stability(g, y, x)
+	return (stabilities[player] - stabilities[oth_player]) / max(sum(stabilities), 1)
 
 
 # Find the stability of a square
@@ -192,35 +227,4 @@ def square_weight(g, y, x):
 		or ((y == 6 and (x == 0 or x == 1)) or (y == 7 and x == 1) and (g.b[7][0] != g.blank))
 		or ((y == 6 and (x == 6 or x == 7)) or (y == 7 and x == 6) and (g.b[7][7] != g.blank))):
 		weight = 48
-			
 	return weight
-
-
-# Find how many corner a player owns
-def corner_count(g):
-	corners = [0, 0]
-	if g.b[0][0] != g.blank:
-		corners[g.b[0][0]] += 1
-	if g.b[7][0] != g.blank:
-		corners[g.b[7][0]] += 1
-	if g.b[0][7] != g.blank:
-		corners[g.b[0][7]] += 1
-	if g.b[7][7] != g.blank:
-		corners[g.b[7][7]] += 1
-	return corners
-
-
-# Check number of the squares on the player's frontier
-def frontier_count(g, player):
-	dy = [ 1, 0,-1, 0]
-	dx = [ 0, 1, 0,-1]
-	count = 0
-	for y in range(8):
-		for x in range(8):
-			if g.b[y][x] == player:
-				for i in range(4):
-					nY = y + dy[i]
-					nX = x + dx[i]
-					if g.in_lim(nY, nX) and g.b[nY][nX] != player:
-						count += 1
-	return count
