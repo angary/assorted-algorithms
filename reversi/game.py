@@ -6,11 +6,11 @@ class Game(object):
 		self.turn = 0
 		self.p = player
 		self.offset = 0
-		self.blank = "_"
-		self.colour = ["W", "."]
+		self.blank = 2
+		self.colour = ["W", ".", "_"]
 		self.dy = [1, 1, 0, -1, -1, -1, 0, 1]
 		self.dx = [0, 1, 1, 1, 0, -1, -1, -1]
-		self.b = [[self.blank for j in range(8)] for i in range(8)]
+		self.b = [[self.blank for _ in range(8)] for _ in range(8)]
 		self.b[3][3] = self.b[4][4] = 0
 		self.b[3][4] = self.b[4][3] = 1
 		self.move_stack = [deepcopy(self.b)]
@@ -24,10 +24,7 @@ class Game(object):
 		for i in range(8):
 			print(i + 1, "|", end="")
 			for j in range(8):
-				if (self.b[i][j] == self.blank):
-					print(self.blank, end = " ")
-				else:
-					print(self.colour[self.b[i][j]], end = " ")
+				print(self.colour[self.b[i][j]], end = " ")
 			print()
 		print()
 
@@ -118,7 +115,7 @@ class Game(object):
 			if self.in_lim(nY, nX) and self.b[nY][nX] == oth_player:
 				curr_flipped = 0
 				for _ in range(7):
-					if not self.in_lim(nY, nX) or self.b[nY][nX] == "_":
+					if not self.in_lim(nY, nX) or self.b[nY][nX] == self.blank:
 						break
 					if self.b[nY][nX] == player:
 						flip_dirs.append(dir_index)
