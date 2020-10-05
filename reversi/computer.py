@@ -1,6 +1,7 @@
 import math
 import copy
 from reversi import checked
+import numpy as np
 
 # Global variables because I'm lazy
 transposition_table = {}
@@ -66,27 +67,32 @@ def heuristic_sort(g, valid_moves):
 # Finds the score of the baord
 def find_score(g, priority):
 	key = zobrist_key(g)
-	if key in transposition_table:
-		score = transposition_table[key]
+	if key[0] in transposition_table:
+		if key[1] in transposition_table[key[0]]:
+			score = transposition_table[key[0]][key[1]]
+		else:
+			score = heuristic_score(g, priority)
+			transposition_table[key[0]][key[1]] = score
 	else:
 		score = heuristic_score(g, priority)
-		transposition_table[key] = score
+		transposition_table[key[0]] = {}
+		transposition_table[key[0]][key[1]] = score
 	return (score, -1, -1)
 
 
 # Generates a zobrist key for the board
 def zobrist_key(g):
-	mul = 1
-	key = 0
+	shift = 1
+	key0 = 0
+	key1 = 0
 	for y in range(8):
 		for x in range(8):
-			piece = g.b[y][x]
-			if piece != g.blank:
-				key += piece * mul
-			else:
-				key += 2 * mul
-			mul *= 3
-	return key
+			if g.b[y][x] == 0:
+				key0 += shift
+			elif g.b[y][x] == 1:
+				key1 += shift
+			shift *= 2
+	return (key0, key1)
 
 
 # AI Heuristic (Mathyish stuff)
