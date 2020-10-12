@@ -1,4 +1,6 @@
 from copy import deepcopy
+from colorama import Fore, Back, Style
+
 
 class Game(object):
 
@@ -7,7 +9,7 @@ class Game(object):
 		self.p = player
 		self.offset = 0
 		self.blank = 2
-		self.colour = ["W", ".", "_"]
+		self.colour = ["O", "X", " "]
 		self.dy = [1, 1, 0, -1, -1, -1, 0, 1]
 		self.dx = [0, 1, 1, 1, 0, -1, -1, -1]
 		self.b = [[self.blank] * 8  for _ in range(8)]
@@ -20,11 +22,20 @@ class Game(object):
 	def print_board(self):
 		print()
 		print("   a b c d e f g h")
-		print("   _______________")
+		print("   ________________")
 		for i in range(8):
 			print(i + 1, "|", end="")
 			for j in range(8):
-				print(self.colour[self.b[i][j]], end = " ")
+				print(Back.GREEN, end = "")
+				if self.b[i][j] == 0:
+					print(Fore.WHITE, end = "")
+					print(self.colour[0],  end = " ")
+				elif self.b[i][j] == 1:
+					print(Fore.BLACK, end = "")
+					print(self.colour[1], end = " ")
+				else:
+					print(self.colour[2], end = " ")
+				print(Style.RESET_ALL, end = "")
 			print()
 		print()
 
