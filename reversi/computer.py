@@ -1,23 +1,12 @@
 import math
 import copy
 from reversi import checked
-import numpy as np
 
 # Global variables because I'm lazy
 transposition_table = {}
-weights = [
-	[ 512,-256, 256, -16, -16, 256,-256, 512],
-	[-256,-256, -32, -32, -32, -32,-256,-256],
-	[ 256, -32, 256,  16,  16, 256, -32, 256],
-	[ -16, -32,  16,  16,  16,  16, -32, -16],
-	[ -16, -32,  16,  16,  16,  16, -32, -16],
-	[ 256, -32, 256,  16,  16, 256, -32, 256],
-	[-256,-256, -32, -32, -32, -32,-256,-256],
-	[ 512,-256, 256, -16, -16, 256,-256, 512]
-]
 
 
-# Actual AI algorithm (Computer Sciency stuff)
+# Actual AI algorithm (Algos code)
 ################################################################################
 # Main code
 def minimax(g, priority, alpha, beta, depth):
@@ -95,23 +84,36 @@ def zobrist_key(g):
 	return (key0, key1)
 
 
-# AI Heuristic (Mathyish stuff)
+# AI Heuristic (Maths code)
 ################################################################################
 # Score the game using the heuristic
 def heuristic_score(g, player):
 	rating = 0
 	oth_player = (player + 1) % 2
 
+	# Each of these score functions will retrun a value out of 100
+	# A bigger value = better for the player
 	mobility = mobility_score(g, player, oth_player)
 	corner = corner_score(g, player, oth_player)
 	frontier = frontier_score(g, player, oth_player)
 	weight = weight_score(g, player, oth_player)
 	stability = stability_score(g, player, oth_player)
 
-	rating += corner * 6
-	rating += (1 - g.turn / 60) * (frontier +  mobility + weight)
-	rating += (1 + (3 * g.turn) / 60) * stability
+	# Corners are always weighted highly
+	rating += 2 * corner
 
+	# We prioritise having a low frontier and high mobility early on,
+	# but later on as we cover more squares, our frontier will increase, and 
+	# our mobility drops, so we weigh the values less
+	rating += 2 * (1 - (g.turn / 60)) * frontier
+	rating += 2 * (1 - (g.turn / 60)) * mobility
+
+	# Early on, the number of squares we control, isn't too important, as we can
+	# flip more later on. However, towards the lategame, we value this more.
+	rating += 2 * (1 + (g.turn / 60)) * stability
+	rating += 2 * (1 + (g.turn / 60)) * weight
+
+	# Returns a weighting out of 1000
 	return rating
 
 
@@ -123,7 +125,7 @@ def mobility_score(g, player, oth_player):
 	return (my_mobility - oth_mobility) / max(total_mobility, 1)
 
 
-# Find how many corner a player owns
+# Find how many corner player owns compared to other player
 def corner_score(g, player, oth_player):
 	corners = [0, 0]
 	if g.b[0][0] != g.blank:
@@ -139,7 +141,7 @@ def corner_score(g, player, oth_player):
 
 # Check number of the squares on the player's frontier
 def frontier_score(g, player, oth_player):
-	visited = [[[False for k in range(8)] for j in range(8)] for i in range(2)]
+	visited = [[[False] * 8 for j in range(8)] for i in range(2)]
 	frontier = [0, 0]
 	for y in range(8):
 		for x in range(8):
@@ -152,7 +154,7 @@ def frontier_score(g, player, oth_player):
 						and visited[curr_player][nY][nX] == False):
 						visited[curr_player][nY][nX] = True
 						frontier[curr_player] += 1
-	return (frontier[player] - frontier[oth_player]) / max(sum(frontier), 1)
+	return (frontier[oth_player] - frontier[player]) / max(sum(frontier), 1)
 
 
 # Calculate the value of the board based on predetermined weights
@@ -176,50 +178,106 @@ def stability_score(g, player, oth_player):
 	return (stabils[player] - stabils[oth_player]) / max(sum(stabils), 1)
 
 
+# Heuristic Utils
+################################################################################
 # Find the stability of a square
 def square_stabil(g, y, x):
 	opposition = (g.b[y][x] + 1) % 2
 
-	stability = 64
-	oppositions = [False for _ in range(8)]
-	blanks = [0 for _ in range(8)]
-	for direction in range(8):
-		for distance in range(1, 8):
-			nY = y + g.dy[direction] * distance
-			nX = x + g.dx[direction] * distance
+	stability = 128
+	oppositions = [False] * 8
+	blanks = [0] * 8
+
+	# Check every direction along current square's row, column, and diagonals
+	for dir in range(8):
+		nY = y
+		nX = x
+
+		# Check every square in current direction
+		for _ in range(8):
+			nY += g.dy[dir]
+			nX += g.dx[dir]
+
+			# If it is still within the board
 			if g.in_lim(nY, nX):
+
+				# If the new square is blank
 				if g.b[nY][nX] == g.blank:
-					blanks[direction] += 1
-				if blanks[direction] == 0 and g.b[y][x] == opposition:
-					oppositions[direction] == True
+					blanks[dir] += 1
+
+				# If not blanks yet found in this direction and 
+				# the current square is of the other player
+				if blanks[dir] == 0 and g.b[nY][nX] == opposition:
+					oppositions[dir] == True
+			else:
+				break
 	
 	# Double stability if square cannot be immediately flipped in a direction
-	for direction in range(8):
-		if oppositions[(direction + 4) % 8] and blanks[direction] > 0:
-			stability //= 2
-		else:
-			stability *= 2
-	
-	# Consider future stability of square
-	for direction in range(4):
+	for dir in range(8):
 
-		min_blank = min(blanks[direction], blanks[direction + 4])
-		if min_blank % 2 == 0:
-			stability *= 2
+		# If oth player on one side, and on the other side, there is free square
+		opp_dir = (dir + 4) % 8
+		if oppositions[dir] and not oppositions[opp_dir] and blanks[opp_dir]:
+			stability >>= 3
 		else:
-			stability //= 2
-		stability //= 2 ** min_blank
+			stability <<= 1
+	
+	# If there are more blanks along one side, a square is more unstable
+	for dir in range(4):
+		min_blank = min(blanks[dir], blanks[dir + 4])
+		if min_blank % 2 == 0:
+			stability <<= 1
+		else:
+			stability >>= 1
+		# stability >>= (blanks[dir] * blanks[dir + 4]) >> 1
+	
+	if x % 2 == 0 and y % 2 == 0:
+		stability <<= 2
+	elif x % 2 == 1 and y % 2 == 1:
+		stability >>= 1
+
 	return stability
 
 
 # Find the weight/ value of a square
 def square_weight(g, y, x):
-	# IMPLEMENT DYNAMIC SQUARE WEIGHTS
-	weight = weights[y][x]
-	# Scuffed method for testing
-	if (((y == 1 and (x == 0 or x == 1)) or (y == 0 and x == 1) and (g.b[0][0] != g.blank))
-		or ((y == 1 and (x == 6 or x == 7)) or (y == 0 and x == 7) and (g.b[0][7] != g.blank))
-		or ((y == 6 and (x == 0 or x == 1)) or (y == 7 and x == 1) and (g.b[7][0] != g.blank))
-		or ((y == 6 and (x == 6 or x == 7)) or (y == 7 and x == 6) and (g.b[7][7] != g.blank))):
-		weight = 48
+	weight = 0
+
+	# Find the distance of current coordinate from center
+	x_dist = 4 - x if x < 4 else x - 3
+	y_dist = 4 - y if y < 4 else y - 3
+	x_weight = 2 << x_dist
+	y_weight = 2 << y_dist
+
+	# Weight good if distance from center even, else bad, because if even, 
+	# it can be flipped, then flipped back, more importantly, parity determines 
+	# if piece can take or give a corner. This effect increases with distance 
+	# from center as outer even squares more valuable, whereas odd bad
+	# as it gives opponent opportunity to take good squares
+	weight = weight + x_weight if x_dist % 2 == 0 else weight - x_weight
+	weight = weight + y_weight if y_dist % 2 == 0 else weight - y_weight
+	if x_dist % 2 == 0 and y_dist % 2 == 0:
+		weight <<= 2
+	elif x_dist % 2 == 1 and y_dist % 2 == 1:
+		weight >>= 2
+	
+	corner = near_corner(g, y, x)
+	if corner:
+		if g.b[corner['y']][corner['x']] == g.b[y][x]:
+			weight = 64
 	return weight
+
+
+# Check if a square is one piece away from a corner
+def near_corner(g, y, x):
+	for i in range(8):
+		if is_corner(y + g.dy[i], x + g.dx[i]):
+			return {'y': y + g.dy[i], 'x': x + g.dx[i]}
+	return False
+
+
+# Check if a square is a corner
+def is_corner(y, x):
+	if (y == 0 or y == 7) and (x == 0 or x == 7):
+		return True
+	return False
