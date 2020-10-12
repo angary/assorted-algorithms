@@ -10,7 +10,7 @@ class Game(object):
 		self.colour = ["W", ".", "_"]
 		self.dy = [1, 1, 0, -1, -1, -1, 0, 1]
 		self.dx = [0, 1, 1, 1, 0, -1, -1, -1]
-		self.b = [[self.blank for _ in range(8)] for _ in range(8)]
+		self.b = [[self.blank] * 8  for _ in range(8)]
 		self.b[3][3] = self.b[4][4] = 0
 		self.b[3][4] = self.b[4][3] = 1
 		self.move_stack = [deepcopy(self.b)]
@@ -41,7 +41,7 @@ class Game(object):
 		score = {self.colour[0]: 0, self.colour[1]: 0}
 		for y in range(8):
 			score[self.colour[0]] += self.b[y].count(0)
-			score[self.colour[1]] += self.b[y].count(1)
+		score[self.colour[1]] = (self.turn + 4) - score[self.colour[0]]
 		return score
 
 	# Register the player's chosen location on the board
@@ -98,30 +98,28 @@ class Game(object):
 					valid_moves.append((y, x))
 		return valid_moves
 
-	# Check if a square is valid
+	# Return how many squares that position can flip
 	def valid(self, y, x, player):
 		if self.b[y][x] != self.blank:
 			return 0
 		oth_player = (player + 1) % 2
-		return self.find_flips(y, x, oth_player, player)['flipped']
+		return self.find_flips(y, x, oth_player, player)['flipped_count']
 
 	# Find which direction a move flips, and how many it flips
 	def find_flips(self, y, x, oth_player, player):
-		flipped = 0
+		flipped_count = 0
 		flip_dirs = []
-		for dir_index in range(8):
-			nY = y + self.dy[dir_index]
-			nX = x + self.dx[dir_index]
+		for direction in range(8):
+			nY = y + self.dy[direction]
+			nX = x + self.dx[direction]
 			if self.in_lim(nY, nX) and self.b[nY][nX] == oth_player:
-				curr_flipped = 0
-				for _ in range(7):
+				for curr_flipped in range(8):
 					if not self.in_lim(nY, nX) or self.b[nY][nX] == self.blank:
 						break
 					if self.b[nY][nX] == player:
-						flip_dirs.append(dir_index)
-						flipped += curr_flipped
+						flip_dirs.append(direction)
+						flipped_count += curr_flipped
 						break
-					curr_flipped += 1
-					nY += self.dy[dir_index]
-					nX += self.dx[dir_index]
-		return {'flip_dirs': flip_dirs, 'flipped': flipped}
+					nY += self.dy[direction]
+					nX += self.dx[direction]
+		return {'flip_dirs': flip_dirs, 'flipped_count': flipped_count}
