@@ -28,11 +28,9 @@ class Game(object):
 			for j in range(8):
 				print(Back.GREEN, end = "")
 				if self.b[i][j] == 0:
-					print(Fore.WHITE, end = "")
-					print(self.colour[0],  end = " ")
+					print(Fore.WHITE + self.colour[0], end = " ")
 				elif self.b[i][j] == 1:
-					print(Fore.BLACK, end = "")
-					print(self.colour[1], end = " ")
+					print(Fore.BLACK + self.colour[1], end = " ")
 				else:
 					print(self.colour[2], end = " ")
 				print(Style.RESET_ALL, end = "")
