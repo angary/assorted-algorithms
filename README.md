@@ -23,8 +23,8 @@ Uses a recursive backtracking solve involving regular quartes, Warnsdorff's heur
 Generates graph of words from given text. New text is generated through markov chain, where the next word chosen is based off the current word and original text's probabilistic rules.
 <br><br>
 
-
 ## reversi
-<b>[Link](reversi) | Oct 2020 | (Work in progress) </b><br>
+<b>[Link](reversi) | Oct 2020</b><br>
 <b>A command line implementation of the board game 'Reversi' along with an AI to play against.</b></br>
 Algorithms used: minimax, move sorting, alpha beta pruning, transposition table, and zobrist keys. Heuristics used: mobility, corners captured, frontier length, stability, and predetermined value of square.
+<br><br>
