@@ -1,7 +1,7 @@
 # Some notes
 
 ## The setup
-- [reversi.py](reversi.py) contains code which runs the game, and does the interfacing between the user, ai, and game.
+- [reversi.py](reversi.py) contains code which runs the game, and does the interfacing between the user, ai, and game
 - [game.py](game.py) contains the game class which holds information about the game state and methods for playing
 - [computer.py](computer.py) contains the ai code which includes the algos, and heuristics
 
