@@ -6,4 +6,5 @@
 
 ## Kinda interesting notes
 - It's implemented in vanilla python to remove layers of abstraction and reveal what's actually going on, hence I wouldn't recommend using the raw code. Certain optimisations have been implemented for the sake of experimentation however, if you're looking for a proper version, just use sklearn
+- It uses the adam optimisation, which utilises momentum to offset irrelevant movements conducted in stochastic gradient descent. For some reason I haven't implemented that
 - Ideally the inputs for the input matrix are numbers close to each other, i.e. numbers in the range from 0 - 10, it goes a bit spastic 
