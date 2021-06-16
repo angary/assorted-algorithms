@@ -12,6 +12,7 @@ MAX_ITERATION = 10000
 MIN_ERROR = 0.001
 LEARN_RATE = 0.01
 
+
 def factorise(m0, k):
     """
     Given an (m x n) matrix, factorise the matrix into two (m x k) and (k x n)
@@ -66,7 +67,7 @@ def matrix_multiply(a, b):
     """
     Given two matrixes, return their product
     """
-    product = [[0] * len(b[0]) for _ in  range(len(a))]
+    product = [[0] * len(b[0]) for _ in range(len(a))]
     for i in range(len(a)):
         for j in range(len(b[0])):
             for k in range(len(b)):
@@ -81,6 +82,6 @@ def mean_square_error(a, b):
     square_error = 0
     for i in range(len(a)):
         for j in range(len(a[0])):
-            square_error += (a[i][j] - b[i][j]) ** 2
+            square_error += (a[i][j] - b[i][j])**2
     values = len(a) * len(b[0])
     return square_error / values
