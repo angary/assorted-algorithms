@@ -18,7 +18,7 @@ def main():
 	if (((y == 2 or y == 5) and (x == 3 or x == 4))
 		or ((y == 3 or y == 4) and (x == 2 or x == 5))):
 		global max_stack
-		max_stack = 32
+		max_stack += 16
 	if solve(b, [y, x], 1, [quad_hash(y, x)], False):
 		print_board(b)
 	else:
@@ -87,7 +87,7 @@ def print_board(b):
 
 # Check which quad the square is in
 def quad_hash(y, x):
-	return 2 * (y > 3) + (x > 3)
+	return 2 * (y // 4) + (x // 4)
 
 
 # Check if the new move satisfies magic condition
