@@ -11,7 +11,11 @@ def main():
 
     factor1, factor2 = factorise(matrix, latent_features)
 
+    print()
+    print("1st factor")
     print(factor1)
+    print()
+    print("2nd factor")
     print(factor2)
 
 if __name__ == "__main__":
