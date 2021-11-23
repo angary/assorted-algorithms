@@ -7,7 +7,7 @@ A bunch of algorithms that I decided to showcase. If I'm currently working on so
 **[Link](matrix_factorisation) | Dec 2020**
 
 **A matrix factorisation algorithm such as those used in recommendation systems.**</br>
-A matrix factorisation algorithm that uses back propagation with custom "latent features".
+A latent matrix factorisation algorithm through gradient descent.
 
 ## reversi
 
