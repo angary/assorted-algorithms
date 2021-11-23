@@ -1,15 +1,24 @@
+from __future__ import annotations
+
 import math
 import copy
-from reversi import checked
+
+from game import Game, BLANK, DY, DX, DIRECTIONS, SIZE
 
 # Global variables because I'm lazy
-transposition_table = {}
+transposition_table: dict[int, dict[int, int]] = {}
 
 
 # Actual AI algorithm (Algos code)
 ################################################################################
 # Main code
-def minimax(g, priority, alpha, beta, depth):
+def minimax(
+    g: Game,
+    priority: int,
+    alpha: float,
+    beta: float,
+    depth: int
+) -> tuple[float, int, int]:
 
     if g.over() or depth == 0:
         return find_score(g, priority)
@@ -21,19 +30,14 @@ def minimax(g, priority, alpha, beta, depth):
     for y, x in valid_moves:
         new = copy.deepcopy(g)
         new.go(y, x)
-        new_eval = minimax(new, priority, alpha, beta, depth - 1)
-        new_eval = new_eval[0]
+        new_eval = minimax(new, priority, alpha, beta, depth - 1)[0]
         if g.p == priority:
             if new_eval > best_eval:
-                best_eval = new_eval
-                best_y = y
-                best_x = x
+                best_eval, best_y, best_x = new_eval, y, x
             alpha = max(alpha, best_eval)
         else:
             if new_eval < best_eval:
-                best_eval = new_eval
-                best_y = y
-                best_x = x
+                best_eval, best_y, best_x = new_eval, y, x
             beta = min(beta, best_eval)
         if beta <= alpha:
             break
@@ -41,7 +45,7 @@ def minimax(g, priority, alpha, beta, depth):
 
 
 # Sort moves according to which one seems better
-def heuristic_sort(g, valid_moves):
+def heuristic_sort(g: Game, valid_moves: list[tuple[int, int]]) -> list[tuple[int, int]]:
     sorted_moves = []
     for move in valid_moves:
         y, x = move
@@ -54,7 +58,7 @@ def heuristic_sort(g, valid_moves):
 
 
 # Finds the score of the baord
-def find_score(g, priority):
+def find_score(g: Game, priority: int) -> tuple[float, int, int]:
     key = zobrist_key(g)
     if key[0] in transposition_table:
         if key[1] in transposition_table[key[0]]:
@@ -70,24 +74,21 @@ def find_score(g, priority):
 
 
 # Generates a zobrist key for the board
-def zobrist_key(g):
+def zobrist_key(g: Game) -> tuple[int, int]:
     shift = 1
-    key0 = 0
-    key1 = 0
+    key = [0, 0]
     for y in range(8):
         for x in range(8):
-            if g.b[y][x] == 0:
-                key0 += shift
-            elif g.b[y][x] == 1:
-                key1 += shift
+            if g.b[y][x] in [0, 1]:
+                key[g.b[y][x]] += shift
             shift *= 2
-    return (key0, key1)
+    return key
 
 
 # AI Heuristic (Maths code)
 ################################################################################
 # Score the game using the heuristic
-def heuristic_score(g, player):
+def heuristic_score(g: Game, player: int) -> int:
     rating = 0
     oth_player = (player + 1) % 2
 
@@ -118,7 +119,7 @@ def heuristic_score(g, player):
 
 
 # Determine if the current player has better mobility
-def mobility_score(g, player, oth_player):
+def mobility_score(g: Game, player: int, oth_player: int) -> float:
     my_mobility = len(g.find_valid(player))
     oth_mobility = len(g.find_valid(oth_player))
     total_mobility = my_mobility + oth_mobility
@@ -126,30 +127,26 @@ def mobility_score(g, player, oth_player):
 
 
 # Find how many corner player owns compared to other player
-def corner_score(g, player, oth_player):
+def corner_score(g: Game, player: int, oth_player: int) -> float:
     corners = [0, 0]
-    if g.b[0][0] != g.blank:
-        corners[g.b[0][0]] += 1
-    if g.b[7][0] != g.blank:
-        corners[g.b[7][0]] += 1
-    if g.b[0][7] != g.blank:
-        corners[g.b[0][7]] += 1
-    if g.b[7][7] != g.blank:
-        corners[g.b[7][7]] += 1
+    locations = [(0, 0), (7, 0), (0, 7), (7, 7)]
+    for y, x in locations:
+        if g.b[y][x] != BLANK:
+            corners[g.b[y][x]] += 1
     return (corners[player] - corners[oth_player]) / max(sum(corners), 1)
 
 
 # Check number of the squares on the player's frontier
-def frontier_score(g, player, oth_player):
-    visited = [[[False] * 8 for j in range(8)] for i in range(2)]
+def frontier_score(g: Game, player: int, oth_player: int) -> float:
+    visited = [[[False] * SIZE for _ in range(SIZE)] for _ in range(2)]
     frontier = [0, 0]
-    for y in range(8):
-        for x in range(8):
-            if g.b[y][x] != g.blank:
+    for y in range(SIZE):
+        for x in range(SIZE):
+            if g.b[y][x] != BLANK:
                 curr_player = g.b[y][x]
-                for i in range(8):
-                    nY = y + g.dy[i]
-                    nX = x + g.dx[i]
+                for i in range(DIRECTIONS):
+                    nY = y + DY[i]
+                    nX = x + DX[i]
                     if (g.in_lim(nY, nX) and g.b[nY][nX] != curr_player
                             and visited[curr_player][nY][nX] == False):
                         visited[curr_player][nY][nX] = True
@@ -158,22 +155,22 @@ def frontier_score(g, player, oth_player):
 
 
 # Calculate the value of the board based on predetermined weights
-def weight_score(g, player, oth_player):
+def weight_score(g: Game, player: int, oth_player: int) -> float:
     weights = [0, 0]
-    for y in range(8):
-        for x in range(8):
-            if g.b[y][x] != g.blank:
+    for y in range(SIZE):
+        for x in range(SIZE):
+            if g.b[y][x] != BLANK:
                 weights[g.b[y][x]] += square_weight(g, y, x)
     sum_weights = 1 if sum(weights) == 0 else sum(weights)
     return (weights[player] - weights[oth_player]) / sum_weights
 
 
 # Calculate how hard it is for a player to change the configuration of the board
-def stability_score(g, player, oth_player):
+def stability_score(g: Game, player: int, oth_player: int) -> float:
     stabils = [0, 0]
-    for y in range(8):
-        for x in range(8):
-            if g.b[y][x] != g.blank:
+    for y in range(SIZE):
+        for x in range(SIZE):
+            if g.b[y][x] != BLANK:
                 stabils[g.b[y][x]] += square_stabil(g, y, x)
     return (stabils[player] - stabils[oth_player]) / max(sum(stabils), 1)
 
@@ -181,28 +178,28 @@ def stability_score(g, player, oth_player):
 # Heuristic Utils
 ################################################################################
 # Find the stability of a square
-def square_stabil(g, y, x):
+def square_stabil(g: Game, y: int, x: int) -> float:
     opposition = (g.b[y][x] + 1) % 2
 
     stability = 128
-    oppositions = [False] * 8
-    blanks = [0] * 8
+    oppositions = [False] * SIZE
+    blanks = [0] * SIZE
 
     # Check every direction along current square's row, column, and diagonals
-    for dir in range(8):
+    for dir in range(DIRECTIONS):
         nY = y
         nX = x
 
         # Check every square in current direction
-        for _ in range(8):
-            nY += g.dy[dir]
-            nX += g.dx[dir]
+        for _ in range(SIZE):
+            nY += DY[dir]
+            nX += DX[dir]
 
             # If it is still within the board
             if g.in_lim(nY, nX):
 
                 # If the new square is blank
-                if g.b[nY][nX] == g.blank:
+                if g.b[nY][nX] == BLANK:
                     blanks[dir] += 1
 
                 # If not blanks yet found in this direction and
@@ -213,7 +210,7 @@ def square_stabil(g, y, x):
                 break
 
     # Double stability if square cannot be immediately flipped in a direction
-    for dir in range(8):
+    for dir in range(DIRECTIONS):
 
         # If oth player on one side, and on the other side, there is free square
         opp_dir = (dir + 4) % 8
@@ -223,7 +220,7 @@ def square_stabil(g, y, x):
             stability <<= 1
 
     # If there are more blanks along one side, a square is more unstable
-    for dir in range(4):
+    for dir in range(DIRECTIONS // 2):
         min_blank = min(blanks[dir], blanks[dir + 4])
         if min_blank % 2 == 0:
             stability <<= 1
@@ -240,7 +237,7 @@ def square_stabil(g, y, x):
 
 
 # Find the weight/ value of a square
-def square_weight(g, y, x):
+def square_weight(g: Game, y: int, x: int) -> float:
     weight = 0
 
     # Find the distance of current coordinate from center
@@ -269,15 +266,8 @@ def square_weight(g, y, x):
 
 
 # Check if a square is one piece away from a corner
-def near_corner(g, y, x):
-    for i in range(8):
-        if is_corner(y + g.dy[i], x + g.dx[i]):
-            return {'y': y + g.dy[i], 'x': x + g.dx[i]}
-    return False
-
-
-# Check if a square is a corner
-def is_corner(y, x):
-    if (y == 0 or y == 7) and (x == 0 or x == 7):
-        return True
+def near_corner(g: Game, y: int, x: int) -> bool | dict[str, int]:
+    for i in range(DIRECTIONS):
+        if (y + DY[i]) in [0, SIZE - 1] and  (x + DX[i]) in [0, SIZE - 1]:
+            return {'y': y + DY[i], 'x': x + DX[i]}
     return False

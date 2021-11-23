@@ -1,14 +1,17 @@
 # Contains the code for implementation of reversi and minimax AI
+from __future__ import annotations
 
-from game import Game
-from computer import *
-from colorama import Fore, Back, Style
 import math
 import time
 
+from typing import Callable
+from game import Game, COLOUR
+from computer import *
+from colorama import Fore, Style
+
 # Global variable to check how many scenarios the algo checked
 # just exists for testing
-checked = 0
+checked: int = 0
 
 
 # Driver code
@@ -19,24 +22,24 @@ def main():
     print("Enter positions as <letter><number>, i.e. a1")
     g.print_board()
     start_time = time.time()
-    option = input_wrapper(input_option)()
+    option = input_option()
 
     # Depth for minimax search
     depth = 0
     if option >= 2:
-        depth = input_wrapper(input_depth)()
+        depth = input_depth()
 
     while not g.over():
 
         # Take input
         if g.p == 0:
             if option < 3:
-                input_wrapper(human_turn(g, g.p))
+                human_turn(g, g.p)
             else:
                 computer_turn(g, depth)
         else:
             if option % 2 == 1:
-                input_wrapper(human_turn(g, g.p))
+                human_turn(g, g.p)
             else:
                 computer_turn(g, depth)
 
@@ -55,33 +58,33 @@ def main():
 # Input code
 ################################################################################
 # Adds wrapper to function to check for invalid inputs
-def input_wrapper(func):
-    def wrapper(*args):
+def input_validator(func: Callable) -> Callable:
+    def wrapper(*args, **kwargs):
         while True:
             try:
-                input = func(*args)
+                input = func(*args, **kwargs)
                 if input:
                     return input
             except:
                 print(Fore.RED + "Invalid input" + Style.RESET_ALL)
-
     return wrapper
 
 
 # Take playing option input
-def input_option():
+@input_validator
+def input_option() -> int | None:
     print("Enter how you want the game to be played")
     option = int(
-        input(
-            "[1]: Human vs Human\n[2]: Human vs Computer\n[3]: Computer vs Human\n[4]: Computer vs Computer\n"
+        input("[1]: Human vs Human\n[2]: Human vs Computer\n[3]: Computer vs Human\n[4]: Computer vs Computer\n"
         ))
-    if option > 0 and option < 5:
+    if 0 < option < 5:
         return option
     print(Fore.RED + "Invalid option" + Style.RESET_ALL)
 
 
 # Take depth of minimax search
-def input_depth():
+@input_validator
+def input_depth() -> int | None:
     depth = int(input("Enter depth of minimax search: "))
     if depth > 0:
         return depth
@@ -89,10 +92,9 @@ def input_depth():
 
 
 # Take the input from human player
-def human_turn(*args):
-    g = args[0]
-    player = args[1]
-    print("Currently", g.colour[player])
+@input_validator
+def human_turn(g: Game, player: int) -> bool:
+    print("Currently", COLOUR[player])
     loc = input("Choose position: ").strip()
     if loc == "u" or loc == "U":
         g.undo()
@@ -105,7 +107,7 @@ def human_turn(*args):
 
 
 # Take the computer's turn
-def computer_turn(g, depth):
+def computer_turn(g: Game, depth: int) -> None:
     best = minimax(g, g.p, -math.inf, math.inf, depth)
     g.go(best[1], best[2])
 
