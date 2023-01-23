@@ -54,15 +54,6 @@ impl Graph {
         self.num_vertices() - 1
     }
 
-    /// Remove a vertex
-    pub fn del_vertex(&mut self, u: usize) {
-        // Remove the column
-        self.matrix.remove(u);
-        self.matrix.iter_mut().for_each(|row| {
-            row.remove(u);
-        });
-    }
-
     /// Return a vec of the edges represented as tuples
     pub fn edges(&self) -> Vec<(usize, usize)> {
         let mut res = vec![];
@@ -95,6 +86,11 @@ impl Graph {
         self.add_edge(v, u);
     }
 
+    /// Given a list of edges add all of them to the graph
+    pub fn add_edges(&mut self, edges: Vec<(usize, usize)>) {
+        edges.iter().for_each(|(u, v)| self.add_edge(*u, *v));
+    }
+
     /// Remove the edge between the two vertices if it exists
     pub fn del_edge(&mut self, u: usize, v: usize) {
         if self.matrix[u][v] {
@@ -103,6 +99,13 @@ impl Graph {
         }
     }
 
+    /// Remove all incoming or outgoing edges from a vertex
+    pub fn disconnect_vertex(&mut self, u: usize) {
+        for v in self.vertices() {
+            self.del_edge(u, v);
+            self.del_edge(v, u);
+        }
+    }
     /// Return a list of the vertices that the given vertex has edges to
     pub fn outgoing(&self, u: usize) -> Vec<usize> {
         self.matrix[u]
@@ -161,29 +164,31 @@ impl Graph {
         res
     }
 
-    /// Perform a topological sort
-    pub fn topological(&self) -> Option<Vec<usize>> {
+    /// Perform a topological sort of the vertices if possible, else return None
+    pub fn topological_sort(&self) -> Option<Vec<usize>> {
         // Find all vertices with no incoming edge
         let mut graph = self.clone();
-        let mut res = vec![];
         graph.no_incoming().iter().for_each(|u| {
-            res.push(*u);
-            graph.del_vertex(*u);
+            graph
+                .outgoing(*u)
+                .iter()
+                .for_each(|v| graph.del_edge(*u, *v));
         });
-
+        let mut res = vec![];
         let mut no_incoming = VecDeque::from(graph.no_incoming());
         while !no_incoming.is_empty() {
+            println!("res: {:?}", res);
             // Remove first vertex of the queue and add it to
             let u = no_incoming.pop_front().unwrap();
             res.push(u);
-            graph.del_vertex(u);
-            let mut also_no_incoming = graph.no_incoming();
-            also_no_incoming.retain(|u| !&no_incoming.contains(u));
-            also_no_incoming
-                .iter()
-                .for_each(|u| no_incoming.push_back(*u));
+            graph.outgoing(u).iter().for_each(|v| graph.del_edge(u, *v));
+            no_incoming = graph
+                .no_incoming()
+                .into_iter()
+                .filter(|v| !res.contains(v))
+                .collect();
         }
-        if graph.vertices().is_empty() {
+        if res.len() == graph.num_vertices() {
             return Some(res);
         }
         None
@@ -198,8 +203,68 @@ impl Graph {
             .collect()
     }
 
+    /// Checks that the set of vertices is a connected component of the graph
+    pub fn is_connected_component(&self, vs: Vec<usize>) -> bool {
+        let set: HashSet<usize> = HashSet::from_iter(vs.iter().cloned());
+        let mut graph = self.clone();
+        graph
+            .vertices()
+            .iter()
+            .filter(|u| !set.contains(u))
+            .for_each(|u| graph.disconnect_vertex(*u));
+        let connected: HashSet<usize> = HashSet::from_iter(graph.dfs(vs[0]));
+        println!("connected: {:?}", connected);
+        set == connected
+    }
+
+    /// Checks that the set of vertices is a clique of the graph
+    pub fn is_clique(&self, vs: Vec<usize>) -> bool {
+        for i in 0..vs.len() - 1 {
+            for j in i + 1..vs.len() {
+                if !self.matrix[vs[i]][vs[j]] {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    /// Check that the set of vertices is a separator of the graph
+    pub fn is_separator(&self, vs: HashSet<usize>) -> bool {
+        self.is_connected_component(
+            self.vertices()
+                .into_iter()
+                .filter(|v| vs.contains(v))
+                .collect(),
+        )
+    }
+
+    /// Return the neighbourhood of the set of vertices
+    pub fn neighbourhood(&self, vs: HashSet<usize>) -> HashSet<usize> {
+        let mut res = vs.clone();
+        vs.iter().for_each(|v| res.extend(self.outgoing(*v)));
+        res
+    }
+
+    /// Return the set of all minimal separators of the graph of cardinality at
+    /// most k
+    ///
+    /// Implements the nibble and conquer method, where rather than naively
+    /// iterating all a-b minimal separators, use a recursive approach, where
+    /// given a separator 'X', find all separators that "cross" 'X' and those
+    /// that are "local to" to each component of 'G \ X'
+    ///
+    /// Given 'S' a minimal separator of 'G', we say 'S' "crosses" 'X' if 'S' is
+    /// a minimal a-b separator for two distinct vertices 'a' and 'b' in 'X'.
+    /// For a component 'C' of 'G \ X', we say that 'S' is local to 'C' with
+    /// respect to 'X' if there is a full component 'D' associated with 'S' such
+    /// that 'N[D]' is a subset of `X` union `C`
+    pub fn minimal_separators(&self, k: usize) {
+        todo!()
+    }
+
     /// Return a tree decomposition of the graph
-    pub fn greedy_tree_decomposition(&self, w: u32) {
+    pub fn optimal_tree_decomposition(&self) {
         // Select a random vertex
         let mut tree = Tree::new();
         tree.add_vertex(0);
@@ -208,6 +273,9 @@ impl Graph {
 
 #[cfg(test)]
 mod tests {
+
+    use std::collections::HashSet;
+
     use super::Graph;
 
     #[test]
@@ -220,43 +288,75 @@ mod tests {
     #[test]
     fn bfs() {
         let mut graph = graph!(5);
-        graph.add_edge(0, 1);
-        graph.add_edge(0, 2);
-        graph.add_edge(1, 3);
-        graph.add_edge(2, 4);
+        graph.add_edges(vec![(0, 1), (0, 2), (1, 3), (2, 4)]);
         assert_eq!(vec![0, 1, 2, 3, 4], graph.bfs(0));
     }
 
     #[test]
     fn dfs() {
         let mut graph = graph!(5);
-        graph.add_edge(0, 1);
-        graph.add_edge(0, 2);
-        graph.add_edge(1, 3);
-        graph.add_edge(2, 4);
+        graph.add_edges(vec![(0, 1), (0, 2), (1, 3), (2, 4)]);
         assert_eq!(vec![0, 1, 3, 2, 4], graph.dfs(0));
     }
 
     #[test]
     fn no_incoming_no_edges() {
-        let graph = graph!(5);
-        assert_eq!(vec![0, 1, 2, 3, 4], graph.no_incoming());
-    }
-
-    #[test]
-    fn no_incoming_one_edge() {
         let mut graph = graph!(5);
+        assert_eq!(vec![0, 1, 2, 3, 4], graph.no_incoming());
         graph.add_edge(1, 0);
         assert_eq!(vec![1, 2, 3, 4], graph.no_incoming());
     }
 
     #[test]
-    fn topological() {
+    fn topological_sort() {
         let mut graph = graph!(5);
-        graph.add_edge(0, 1);
-        graph.add_edge(1, 2);
-        graph.add_edge(2, 3);
-        graph.add_edge(3, 4);
-        assert_eq!(Some(vec![0, 1, 2, 3, 4]), graph.topological());
+        graph.add_edges(vec![(0, 1), (1, 2), (2, 3), (3, 4)]);
+        assert_eq!(Some(vec![0, 1, 2, 3, 4]), graph.topological_sort());
+    }
+
+    #[test]
+    fn is_connected_component() {
+        let mut graph = graph!(3);
+        graph.add_edges(vec![(0, 1), (1, 0)]);
+        assert_eq!(true, graph.is_connected_component(vec![0, 1]));
+        assert_eq!(false, graph.is_connected_component(vec![1, 2]));
+        assert_eq!(false, graph.is_connected_component(vec![0, 1, 2]));
+        graph.add_edges(vec![(2, 1), (1, 2)]);
+        assert_eq!(true, graph.is_connected_component(vec![0, 1, 2]));
+        assert_eq!(false, graph.is_connected_component(vec![0, 2]));
+    }
+
+    #[test]
+    fn is_clique() {
+        let mut graph = graph!(3);
+        graph.add_bi_edge(0, 1);
+        assert_eq!(true, graph.is_clique(vec![0, 1]));
+        assert_eq!(false, graph.is_clique(vec![0, 1, 2]));
+        graph.add_bi_edge(1, 2);
+        assert_eq!(false, graph.is_clique(vec![0, 1, 2]));
+        graph.add_bi_edge(0, 2);
+        assert_eq!(true, graph.is_clique(vec![0, 1, 2]));
+    }
+
+    #[test]
+    fn is_separator() {
+        let mut graph = graph!(3);
+        graph.add_edges(vec![(0, 1), (1, 0), (1, 2), (2, 1)]);
+        assert_eq!(true, graph.is_separator(HashSet::from_iter(vec![1])));
+    }
+
+    #[test]
+    fn neighbourhood() {
+        let mut graph = graph!(3);
+        assert_eq!(
+            HashSet::from_iter(vec![0]),
+            graph.neighbourhood(HashSet::from_iter(vec![0]))
+        );
+        graph.add_bi_edge(0, 1);
+        graph.add_bi_edge(1, 2);
+        assert_eq!(
+            HashSet::from_iter(vec![0, 1]),
+            graph.neighbourhood(HashSet::from_iter(vec![0]))
+        );
     }
 }

@@ -13,6 +13,16 @@ impl Tree {
         }
     }
 
+    /// Return treewidth (one less than the size of the largest clique)
+    pub fn treewidth(&self) -> usize {
+        self.nodes
+            .values()
+            .map(|set| set.len())
+            .max()
+            .unwrap_or(0)
+            - 1
+    }
+
     /// Add a new vertex to a new bag
     pub fn add_vertex(&mut self, vertex: usize) {
         let bag = self.get_new_node();
@@ -21,9 +31,7 @@ impl Tree {
 
     /// Add a new vertex to a bag and create the bag if it doesn't exist
     pub fn add_vertex_to_bag(&mut self, node: usize, vertex: usize) {
-        if !self.nodes.contains_key(&node) {
-            self.nodes.insert(node, HashSet::new());
-        }
+        self.nodes.entry(node).or_insert_with(HashSet::new);
         self.nodes
             .get_mut(&node)
             .expect("key should be valid")

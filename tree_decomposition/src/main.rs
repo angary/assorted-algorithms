@@ -22,7 +22,7 @@ fn input_to_graph(string: String) -> Graph {
             .split(' ')
             .map(|n| n.parse::<usize>().expect("Vertex be a number"))
             .collect();
-        graph.add_edge(nums[0], nums[1]);
+        graph.add_bi_edge(nums[0], nums[1]);
     }
     graph
 }
@@ -31,6 +31,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     let input = fs::read_to_string(&args[1])?;
     let graph = input_to_graph(input);
-    graph.greedy_tree_decomposition(0);
+    graph.optimal_tree_decomposition();
     Ok(())
 }

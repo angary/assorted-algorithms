@@ -1,6 +1,8 @@
 # Tree Decomposition
 
-Implementation of graph and tree decomposition algorithm.
+Implementation of graph and tree decomposition algorithm described in paper [1].
+
+
 
 ## Definition
 
@@ -25,8 +27,14 @@ There are two general methods to solving such problems in FPT
 1. **Dynamic programming:** compute local information in a bottom-up fashion along a tree decomposition
 2. **Monadic Second Order Logic:** express graph problem in some logic formalism and use a meta-algorithm
 
+## Implementation
+
 ## Format
 
 Note that the input and output format complies with the standards found [here](https://pacechallenge.wordpress.com/pace-2017/track-a-treewidth/).
 
 ## Running
+
+## Research Material / Links
+
+[1] Tamaki, H. (2019). Computing Treewidth via Exact and Heuristic Lists of Minimal Separators. In: Kotsireas, I., Pardalos, P., Parsopoulos, K., Souravlias, D., Tsokas, A. (eds) Analysis of Experimental Algorithms. SEA 2019. Lecture Notes in Computer Science(), vol 11544. Springer, Cham. https://doi.org/10.1007/978-3-030-34029-2_15
