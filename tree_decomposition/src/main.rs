@@ -1,8 +1,10 @@
 use std::{env, error::Error, fs};
 
 use graph::Graph;
+use tree::{optimal_tree_decomposition, Tree};
 
 mod graph;
+mod msg;
 mod tree;
 
 /// Convert the read contents of the input file into a graph struct
@@ -27,10 +29,19 @@ fn input_to_graph(string: String) -> Graph {
     graph
 }
 
+/// Convert the tree decomposition into a string DIMACS representation
+fn tree_to_output(tree: Tree) -> String {
+    todo!()
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     let input = fs::read_to_string(&args[1])?;
     let graph = input_to_graph(input);
-    graph.optimal_tree_decomposition();
+    let output = match optimal_tree_decomposition(&graph) {
+        Some(tree) => tree_to_output(tree),
+        None => String::from("No optimal tree decomposition"),
+    };
+    println!("{output}");
     Ok(())
 }
