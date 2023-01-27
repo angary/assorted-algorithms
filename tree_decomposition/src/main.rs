@@ -1,47 +1,35 @@
-use std::{env, error::Error, fs};
+use std::{error::Error, fs};
 
-use graph::Graph;
-use tree::{optimal_tree_decomposition, Tree};
-
-mod graph;
+mod graphs;
 mod msg;
-mod tree;
+mod tree_decomposition;
 
-/// Convert the read contents of the input file into a graph struct
-fn input_to_graph(string: String) -> Graph {
-    let lines: Vec<&str> = string.split('\n').filter(|s| !s.starts_with('c')).collect();
-    let num_vertices = lines[0]
-        .split(' ')
-        .nth(2)
-        .expect("Missing number of vertices");
-    let n: u32 = num_vertices
-        .parse()
-        .expect("Number of vertices be a valid number");
-    let mut graph = graph!(n);
-    for s in lines.iter().skip(1) {
-        // Get src and des vertex
-        let nums: Vec<usize> = s
-            .split(' ')
-            .map(|n| n.parse::<usize>().expect("Vertex be a number"))
-            .collect();
-        graph.add_bi_edge(nums[0], nums[1]);
-    }
-    graph
-}
+use clap::Parser;
+use graphs::graph::Graph;
+use tree_decomposition::optimal_decomposition;
 
-/// Convert the tree decomposition into a string DIMACS representation
-fn tree_to_output(tree: Tree) -> String {
-    todo!()
+#[derive(Parser, Debug)]
+struct Args {
+    // Input file containing the graph in DIMACs representation
+    input: String,
+
+    // File to output the tree decomposition in DIMACs representation
+    output: String,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args: Vec<String> = env::args().collect();
-    let input = fs::read_to_string(&args[1])?;
-    let graph = input_to_graph(input);
-    let output = match optimal_tree_decomposition(&graph) {
-        Some(tree) => tree_to_output(tree),
-        None => String::from("No optimal tree decomposition"),
+    let args = Args::parse();
+    let input = fs::read_to_string(&args.input)?;
+    let graph = Graph::from(input);
+    match optimal_decomposition(&graph) {
+        Some(tree) => {
+            println!("Valid tree decomposition found");
+            let string = String::from(tree);
+            fs::write(args.output, string).expect("Unable to write to file");
+        }
+        None => {
+            println!("No valid tree decomposition found");
+        }
     };
-    println!("{output}");
     Ok(())
 }

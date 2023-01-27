@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use crate::graph::{Graph, Vertex};
+use crate::graphs::graph::{Graph, Vertex};
 
 pub struct MinimalSeparatorGenerator {
-    graph: Graph,
+    g: Graph,
     k: usize,
     a_excluded: HashSet<Vertex>,
     minimal_separators: Vec<HashSet<Vertex>>,
@@ -12,7 +12,7 @@ pub struct MinimalSeparatorGenerator {
 impl MinimalSeparatorGenerator {
     pub fn new(graph: &Graph, k: usize) -> Self {
         MinimalSeparatorGenerator {
-            graph: graph.clone(),
+            g: graph.clone(),
             k,
             a_excluded: HashSet::new(),
             minimal_separators: vec![],
@@ -34,23 +34,20 @@ impl MinimalSeparatorGenerator {
     /// that 'N[D]' is a subset of `X` union `C`
     pub fn generate(&mut self) -> Vec<HashSet<Vertex>> {
         // Get all vertices and sort by their neighbourhood size
-        let mut vertices = self.graph.vertices();
-        vertices.sort_by(|a, b| {
-            self.graph
-                .outgoing(*a)
-                .len()
-                .cmp(&self.graph.outgoing(*b).len())
-        });
+        let mut vertices = self.g.vs();
+        vertices.sort_by_key(|v| self.g.outgoing(*v).len());
 
         // Generate all separators for each vertex 'a'
+        self.a_excluded = HashSet::new();
         for a in vertices {
             let (a_set, b_set) = self.generate_sides(a);
             let s_fixed = self.get_separator(&a_set);
             if s_fixed.len() > self.k {
                 continue;
             }
-            let separator: HashSet<Vertex> = self.graph.neighbourhood(&a_set);
+            let separator: HashSet<Vertex> = self.g.neighbours(&a_set);
             self.generate_minimal_separator(a, a_set, b_set, separator, s_fixed);
+            self.a_excluded.insert(a);
         }
         self.minimal_separators.clone()
     }
@@ -65,7 +62,7 @@ impl MinimalSeparatorGenerator {
         s_fixed: HashSet<Vertex>,
     ) {
         // Check that a_set neighbour and separator is the same
-        let (fulls, non_fulls) = self.graph.list_components(&rest, &separator);
+        let (fulls, non_fulls) = self.g.list_components(&rest, &separator);
 
         // List components
         for full in fulls {
@@ -73,12 +70,19 @@ impl MinimalSeparatorGenerator {
         }
 
         for non_full in non_fulls {
-            let sep = self.graph.neighbourhood(&non_full);
+            let sep = self.g.neighbours(&non_full);
             if !s_fixed.is_subset(&sep) {
                 continue;
             }
-            // TODO: continue usage
-            let rest1 = &(&self.graph.vertex_set() - &non_full) - &separator;
+            let rest1 = &(&self.g.vs_set() - &non_full) - &separator;
+            for c in self.g.components_of(&rest1) {
+                if c.contains(&a) {
+                    if c.is_disjoint(&self.a_excluded) {
+                        self.branch(a, &c, &non_full, &sep, &s_fixed);
+                    }
+                    break;
+                }
+            }
         }
     }
 
@@ -91,31 +95,71 @@ impl MinimalSeparatorGenerator {
         separator: &HashSet<Vertex>,
         s_fixed: &HashSet<Vertex>,
     ) {
-        // TODO: validation
+        let n_v = self.g.n();
+        let n_a = a_set.len();
+        let n_s = separator.len();
+        if n_s <= self.k && n_a > (n_v - n_s) / 2
+            || n_s > self.k && n_a + (n_s - self.k) > (n_v - self.k) / 2
+        {
+            return;
+        }
+
         if separator.len() > self.k {
             return;
         }
+        assert!(s_fixed.is_subset(separator));
+        assert!(s_fixed.len() <= self.k);
+        assert!(&self.g.neighbours(a_set) == separator);
+        assert!(&self.g.neighbours(b_set) == separator);
+
         self.minimal_separators.push(separator.clone());
-        if separator.len() < self.k {
-            // TODO: Implement recursion
-            todo!();
+        if separator.len() == self.k {
+            return;
+        }
+        let to_decide = separator - s_fixed;
+        assert!(to_decide.is_disjoint(&self.a_excluded));
+        if to_decide.is_empty() {
+            return;
+        }
+        let v = HashSet::from([self.largest_neighbourhood_vertex(&to_decide, b_set)]);
+        let v_neighbours = self.g.neighbours(&v);
+        let rest = b_set - &v_neighbours;
+        let n_b = &(&v_neighbours - separator) - a_set;
+        let separator_1 = &(separator - &v) | &n_b;
+        let s_fixed_1 = s_fixed | &(&n_b & &self.a_excluded);
+        if s_fixed_1.len() <= self.k {
+            self.generate_minimal_separator(a, a_set | &v, rest, separator_1, s_fixed_1);
+        }
+        if s_fixed.len() < self.k {
+            self.branch(a, a_set, b_set, separator, &(s_fixed & &v));
         }
     }
+
+    /// Return the vertex that has the largest neighbourhood which intersects
+    /// with a set
+    fn largest_neighbourhood_vertex(
+        &self,
+        to_decide: &HashSet<Vertex>,
+        set: &HashSet<Vertex>,
+    ) -> Vertex {
+        to_decide
+            .iter()
+            .map(|v| (*v, (&self.g.neighbours(&HashSet::from([*v])) & set).len()))
+            .max_by_key(|(_, degree)| *degree)
+            .unwrap()
+            .0
+    }
+
     /// Given a vertex 'a' return the set of just that vertex and a set of all
     /// vertices but the neighbourhood of the vertex
     fn generate_sides(&self, a: Vertex) -> (HashSet<Vertex>, HashSet<Vertex>) {
         let a_set: HashSet<Vertex> = HashSet::from([a]);
-        let b_set: HashSet<Vertex> =
-            &HashSet::from_iter(self.graph.vertices()) - &self.graph.neighbourhood(&a_set);
+        let b_set: HashSet<Vertex> = &HashSet::from_iter(self.g.vs()) - &self.g.neighbours(&a_set);
         (a_set, b_set)
     }
 
     /// Given a set of vertices find the separator of that set of vertices
     fn get_separator(&self, a_set: &HashSet<Vertex>) -> HashSet<Vertex> {
-        self.graph
-            .neighbourhood(a_set)
-            .intersection(&self.a_excluded)
-            .cloned()
-            .collect()
+        &self.g.neighbours(a_set) & &self.a_excluded
     }
 }
